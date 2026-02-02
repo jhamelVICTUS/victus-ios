@@ -47,29 +47,25 @@ function initAudio() {
 // ============ SOUND EFFECTS ============
 function playExplosion() {
     if (!audioCtx) return;
-    // Deep, subtle explosion - more thump, less shriek
-    const bufferSize = audioCtx.sampleRate * 0.2;
+    // Very soft, muffled thud - barely audible
+    const bufferSize = audioCtx.sampleRate * 0.12;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
 
     for (let i = 0; i < bufferSize; i++) {
         const t = i / audioCtx.sampleRate;
-        const env = Math.pow(1 - i / bufferSize, 2.5);
+        const env = Math.pow(1 - i / bufferSize, 3);
 
-        // Deep thump - low frequency only
-        const thump = Math.sin(2 * Math.PI * 45 * t) * 0.6;
-        const thump2 = Math.sin(2 * Math.PI * 30 * t) * 0.4;
+        // Ultra-low frequency thud only - 25Hz
+        const thump = Math.sin(2 * Math.PI * 25 * t);
 
-        // Subtle filtered noise - not harsh
-        const noise = (Math.random() * 2 - 1) * 0.15 * Math.pow(1 - i / bufferSize, 4);
-
-        data[i] = (thump + thump2 + noise) * env * 0.5;
+        data[i] = thump * env * 0.3;
     }
 
     const source = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
     source.buffer = buffer;
-    gain.gain.value = 0.25;
+    gain.gain.value = 0.08; // Very quiet
     source.connect(gain);
     gain.connect(audioCtx.destination);
     source.start();
