@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>VICTUS Space Shooter</title>
+    <title>VICTUS-1 // Contested Autonomy</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
@@ -27,7 +27,7 @@
 <body>
 <canvas id="game"></canvas>
 <script>
-// VICTUS SPACE SHOOTER - Enhanced Edition
+// VICTUS-1 // CONTESTED AUTONOMY
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -48,24 +48,21 @@ function initAudio() {
 function playExplosion() {
     if (!audioCtx) return;
     // Very soft, muffled thud - barely audible
-    const bufferSize = audioCtx.sampleRate * 0.12;
+    const bufferSize = audioCtx.sampleRate * 0.08;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
 
     for (let i = 0; i < bufferSize; i++) {
         const t = i / audioCtx.sampleRate;
-        const env = Math.pow(1 - i / bufferSize, 3);
-
-        // Ultra-low frequency thud only - 25Hz
-        const thump = Math.sin(2 * Math.PI * 25 * t);
-
-        data[i] = thump * env * 0.3;
+        const env = Math.pow(1 - i / bufferSize, 4);
+        const thump = Math.sin(2 * Math.PI * 22 * t);
+        data[i] = thump * env * 0.2;
     }
 
     const source = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
     source.buffer = buffer;
-    gain.gain.value = 0.08; // Very quiet
+    gain.gain.value = 0.05;
     source.connect(gain);
     gain.connect(audioCtx.destination);
     source.start();
@@ -85,7 +82,7 @@ function playBomb() {
     osc2.frequency.setValueAtTime(80, audioCtx.currentTime);
     osc2.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.8);
 
-    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
 
     osc.connect(gain);
@@ -102,14 +99,14 @@ function playBossHit() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'square';
-    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
+    osc.stop(audioCtx.currentTime + 0.12);
 }
 
 function playBossShoot() {
@@ -117,14 +114,14 @@ function playBossShoot() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
+    osc.stop(audioCtx.currentTime + 0.15);
 }
 
 function playWarning() {
@@ -133,9 +130,9 @@ function playWarning() {
     const gain = audioCtx.createGain();
     osc.type = 'square';
     osc.frequency.value = 440;
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
     gain.gain.setValueAtTime(0, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.2);
     gain.gain.setValueAtTime(0, audioCtx.currentTime + 0.3);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -147,7 +144,6 @@ function playWarning() {
 let musicPlaying = false;
 let musicNodes = [];
 
-// Create distortion curve for industrial crunch
 function makeDistortionCurve(amount) {
     const samples = 44100;
     const curve = new Float32Array(samples);
@@ -163,35 +159,30 @@ function startMusic() {
     if (musicPlaying || !audioCtx) return;
     musicPlaying = true;
 
-    const bpm = 140; // Faster, more aggressive
+    const bpm = 140;
     const beatTime = 60 / bpm;
     const now = audioCtx.currentTime;
-
-    // 32-bar loop for long moody progression
     const loopDuration = 32 * beatTime;
 
-    // Dark minor key progression - industrial dread
     const bassSequence = [
-        41.20, 41.20, 41.20, 41.20, // E1 - grinding
-        38.89, 38.89, 38.89, 38.89, // Eb1 - tension
-        36.71, 36.71, 36.71, 36.71, // D1 - darker
-        41.20, 43.65, 41.20, 38.89, // E1, F1, E1, Eb1 - resolution
+        41.20, 41.20, 41.20, 41.20,
+        38.89, 38.89, 38.89, 38.89,
+        36.71, 36.71, 36.71, 36.71,
+        41.20, 43.65, 41.20, 38.89,
     ];
 
     function scheduleLoop(startTime) {
         if (!musicPlaying) return;
 
-        // ===== INDUSTRIAL DISTORTED KICK - punishing =====
         for (let beat = 0; beat < 32; beat++) {
             const kickTime = startTime + beat * beatTime;
 
-            // Layer 1: Sub punch
             const kickSub = audioCtx.createOscillator();
             const kickSubGain = audioCtx.createGain();
             kickSub.type = 'sine';
             kickSub.frequency.setValueAtTime(80, kickTime);
             kickSub.frequency.exponentialRampToValueAtTime(30, kickTime + 0.12);
-            kickSubGain.gain.setValueAtTime(0.6, kickTime);
+            kickSubGain.gain.setValueAtTime(0.5, kickTime);
             kickSubGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.2);
             kickSub.connect(kickSubGain);
             kickSubGain.connect(musicGain);
@@ -199,32 +190,29 @@ function startMusic() {
             kickSub.stop(kickTime + 0.25);
             musicNodes.push({osc: kickSub});
 
-            // Layer 2: Distorted click
             const clickBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.03, audioCtx.sampleRate);
             const clickData = clickBuffer.getChannelData(0);
             for (let j = 0; j < clickBuffer.length; j++) {
                 const t = j / audioCtx.sampleRate;
                 const env = Math.pow(1 - j / clickBuffer.length, 8);
-                // Harsh industrial click
                 clickData[j] = Math.sin(t * 4000) * env * 0.5 + (Math.random() - 0.5) * env * 0.3;
             }
             const clickSource = audioCtx.createBufferSource();
             const clickGain = audioCtx.createGain();
             clickSource.buffer = clickBuffer;
-            clickGain.gain.value = 0.15;
+            clickGain.gain.value = 0.12;
             clickSource.connect(clickGain);
             clickGain.connect(musicGain);
             clickSource.start(kickTime);
             musicNodes.push({source: clickSource});
 
-            // Extra hit on off-beats for driving rhythm
             if (beat % 2 === 1) {
                 const ghostKick = audioCtx.createOscillator();
                 const ghostGain = audioCtx.createGain();
                 ghostKick.type = 'triangle';
                 ghostKick.frequency.setValueAtTime(60, kickTime + beatTime * 0.5);
                 ghostKick.frequency.exponentialRampToValueAtTime(25, kickTime + beatTime * 0.5 + 0.08);
-                ghostGain.gain.setValueAtTime(0.25, kickTime + beatTime * 0.5);
+                ghostGain.gain.setValueAtTime(0.2, kickTime + beatTime * 0.5);
                 ghostGain.gain.exponentialRampToValueAtTime(0.001, kickTime + beatTime * 0.5 + 0.1);
                 ghostKick.connect(ghostGain);
                 ghostGain.connect(musicGain);
@@ -234,18 +222,14 @@ function startMusic() {
             }
         }
 
-        // ===== INDUSTRIAL SNARE/CLAP - crushing =====
         for (let beat = 0; beat < 32; beat++) {
             if (beat % 2 === 1) {
                 const snareTime = startTime + beat * beatTime;
-
-                // Noise burst with pitch
                 const snareBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
                 const snareData = snareBuffer.getChannelData(0);
                 for (let j = 0; j < snareBuffer.length; j++) {
                     const t = j / audioCtx.sampleRate;
                     const env = Math.pow(1 - j / snareBuffer.length, 2);
-                    // Mix of noise and tone for industrial feel
                     const tone = Math.sin(t * 180 * Math.PI * 2) * 0.4;
                     const noise = (Math.random() * 2 - 1) * 0.6;
                     snareData[j] = (tone + noise) * env;
@@ -253,7 +237,7 @@ function startMusic() {
                 const snareSource = audioCtx.createBufferSource();
                 const snareGain = audioCtx.createGain();
                 snareSource.buffer = snareBuffer;
-                snareGain.gain.value = 0.18;
+                snareGain.gain.value = 0.15;
                 snareSource.connect(snareGain);
                 snareGain.connect(musicGain);
                 snareSource.start(snareTime);
@@ -261,34 +245,29 @@ function startMusic() {
             }
         }
 
-        // ===== 16TH NOTE HI-HATS - relentless machine rhythm =====
         for (let i = 0; i < 64; i++) {
             const hhTime = startTime + i * beatTime * 0.5;
             const isAccent = i % 4 === 0;
-
             const hhBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
             const hhData = hhBuffer.getChannelData(0);
             for (let j = 0; j < hhBuffer.length; j++) {
                 const env = Math.pow(1 - j / hhBuffer.length, isAccent ? 3 : 6);
-                // High-passed noise for metallic feel
                 hhData[j] = (Math.random() * 2 - 1) * env;
             }
             const hhSource = audioCtx.createBufferSource();
             const hhGain = audioCtx.createGain();
             hhSource.buffer = hhBuffer;
-            hhGain.gain.value = isAccent ? 0.09 : 0.04;
+            hhGain.gain.value = isAccent ? 0.07 : 0.03;
             hhSource.connect(hhGain);
             hhGain.connect(musicGain);
             hhSource.start(hhTime);
             musicNodes.push({source: hhSource});
         }
 
-        // ===== DISTORTED BASS - NIN style grinding =====
         for (let i = 0; i < 16; i++) {
             const bassTime = startTime + i * 2 * beatTime;
             const bassNote = bassSequence[i % 16];
 
-            // Main bass - distorted square
             const bassOsc = audioCtx.createOscillator();
             const bassOsc2 = audioCtx.createOscillator();
             const bassGain = audioCtx.createGain();
@@ -297,14 +276,14 @@ function startMusic() {
             bassOsc.type = 'sawtooth';
             bassOsc.frequency.value = bassNote;
             bassOsc2.type = 'square';
-            bassOsc2.frequency.value = bassNote * 1.01; // Slight detune for thickness
+            bassOsc2.frequency.value = bassNote * 1.01;
 
             distortion.curve = makeDistortionCurve(20);
             distortion.oversample = '2x';
 
             bassGain.gain.setValueAtTime(0, bassTime);
-            bassGain.gain.linearRampToValueAtTime(0.12, bassTime + 0.02);
-            bassGain.gain.setValueAtTime(0.1, bassTime + beatTime * 1.5);
+            bassGain.gain.linearRampToValueAtTime(0.1, bassTime + 0.02);
+            bassGain.gain.setValueAtTime(0.08, bassTime + beatTime * 1.5);
             bassGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.9);
 
             bassOsc.connect(distortion);
@@ -317,14 +296,13 @@ function startMusic() {
             bassOsc2.stop(bassTime + beatTime * 2);
             musicNodes.push({osc: bassOsc});
 
-            // Sub layer for weight
             const subOsc = audioCtx.createOscillator();
             const subGain = audioCtx.createGain();
             subOsc.type = 'sine';
             subOsc.frequency.value = bassNote;
             subGain.gain.setValueAtTime(0, bassTime);
-            subGain.gain.linearRampToValueAtTime(0.2, bassTime + 0.03);
-            subGain.gain.linearRampToValueAtTime(0.15, bassTime + beatTime);
+            subGain.gain.linearRampToValueAtTime(0.15, bassTime + 0.03);
+            subGain.gain.linearRampToValueAtTime(0.1, bassTime + beatTime);
             subGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.9);
             subOsc.connect(subGain);
             subGain.connect(musicGain);
@@ -333,15 +311,13 @@ function startMusic() {
             musicNodes.push({osc: subOsc});
         }
 
-        // ===== DARK SYNTH STABS - 8-bit industrial =====
-        const stabPattern = [0, 4, 8, 12, 16, 20, 24, 28]; // Every 4 beats
-        const stabNotes = [164.81, 155.56, 146.83, 164.81]; // E3, Eb3, D3, E3
+        const stabPattern = [0, 4, 8, 12, 16, 20, 24, 28];
+        const stabNotes = [164.81, 155.56, 146.83, 164.81];
 
         stabPattern.forEach((beat, idx) => {
             const stabTime = startTime + beat * beatTime;
             const note = stabNotes[idx % stabNotes.length];
 
-            // Bitcrushed square wave stab
             const stabOsc = audioCtx.createOscillator();
             const stabOsc2 = audioCtx.createOscillator();
             const stabGain = audioCtx.createGain();
@@ -349,11 +325,11 @@ function startMusic() {
             stabOsc.type = 'square';
             stabOsc.frequency.value = note;
             stabOsc2.type = 'square';
-            stabOsc2.frequency.value = note * 2.01; // Octave up, slightly detuned
+            stabOsc2.frequency.value = note * 2.01;
 
             stabGain.gain.setValueAtTime(0, stabTime);
-            stabGain.gain.linearRampToValueAtTime(0.08, stabTime + 0.01);
-            stabGain.gain.setValueAtTime(0.06, stabTime + beatTime * 0.5);
+            stabGain.gain.linearRampToValueAtTime(0.06, stabTime + 0.01);
+            stabGain.gain.setValueAtTime(0.04, stabTime + beatTime * 0.5);
             stabGain.gain.exponentialRampToValueAtTime(0.001, stabTime + beatTime * 1.5);
 
             stabOsc.connect(stabGain);
@@ -366,34 +342,23 @@ function startMusic() {
             musicNodes.push({osc: stabOsc});
         });
 
-        // ===== MOODY DRONE PAD - atmospheric tension =====
         const droneOsc1 = audioCtx.createOscillator();
         const droneOsc2 = audioCtx.createOscillator();
         const droneOsc3 = audioCtx.createOscillator();
         const droneGain = audioCtx.createGain();
-        const droneLfo = audioCtx.createOscillator();
-        const droneLfoGain = audioCtx.createGain();
 
-        // Detuned saw waves for thick drone
         droneOsc1.type = 'sawtooth';
-        droneOsc1.frequency.value = 82.41; // E2
+        droneOsc1.frequency.value = 82.41;
         droneOsc2.type = 'sawtooth';
-        droneOsc2.frequency.value = 82.41 * 1.003; // Slightly sharp
+        droneOsc2.frequency.value = 82.41 * 1.003;
         droneOsc3.type = 'sawtooth';
-        droneOsc3.frequency.value = 82.41 * 0.997; // Slightly flat
-
-        // LFO for movement
-        droneLfo.type = 'sine';
-        droneLfo.frequency.value = 0.15; // Slow pulse
-        droneLfoGain.gain.value = 0.02;
+        droneOsc3.frequency.value = 82.41 * 0.997;
 
         droneGain.gain.setValueAtTime(0, startTime);
-        droneGain.gain.linearRampToValueAtTime(0.04, startTime + 4);
-        droneGain.gain.setValueAtTime(0.04, startTime + loopDuration - 4);
+        droneGain.gain.linearRampToValueAtTime(0.03, startTime + 4);
+        droneGain.gain.setValueAtTime(0.03, startTime + loopDuration - 4);
         droneGain.gain.linearRampToValueAtTime(0, startTime + loopDuration);
 
-        droneLfo.connect(droneLfoGain);
-        droneLfoGain.connect(droneGain.gain);
         droneOsc1.connect(droneGain);
         droneOsc2.connect(droneGain);
         droneOsc3.connect(droneGain);
@@ -402,60 +367,11 @@ function startMusic() {
         droneOsc1.start(startTime);
         droneOsc2.start(startTime);
         droneOsc3.start(startTime);
-        droneLfo.start(startTime);
         droneOsc1.stop(startTime + loopDuration);
         droneOsc2.stop(startTime + loopDuration);
         droneOsc3.stop(startTime + loopDuration);
-        droneLfo.stop(startTime + loopDuration);
         musicNodes.push({osc: droneOsc1});
 
-        // ===== GLITCH FILLS - every 8 bars =====
-        [7, 15, 23, 31].forEach(beat => {
-            const fillTime = startTime + beat * beatTime;
-
-            // Rapid-fire glitchy hits
-            for (let i = 0; i < 8; i++) {
-                const hitTime = fillTime + i * beatTime * 0.125;
-                const hitOsc = audioCtx.createOscillator();
-                const hitGain = audioCtx.createGain();
-
-                hitOsc.type = 'square';
-                hitOsc.frequency.value = 200 + Math.random() * 800;
-
-                hitGain.gain.setValueAtTime(0.06, hitTime);
-                hitGain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.03);
-
-                hitOsc.connect(hitGain);
-                hitGain.connect(musicGain);
-                hitOsc.start(hitTime);
-                hitOsc.stop(hitTime + 0.05);
-                musicNodes.push({osc: hitOsc});
-            }
-        });
-
-        // ===== INDUSTRIAL NOISE SWEEPS - builds tension =====
-        [8, 24].forEach(beat => {
-            const sweepTime = startTime + beat * beatTime;
-            const sweepDuration = beatTime * 4;
-
-            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * sweepDuration, audioCtx.sampleRate);
-            const noiseData = noiseBuffer.getChannelData(0);
-            for (let j = 0; j < noiseBuffer.length; j++) {
-                const progress = j / noiseBuffer.length;
-                const env = Math.sin(progress * Math.PI) * 0.5;
-                noiseData[j] = (Math.random() * 2 - 1) * env;
-            }
-            const noiseSource = audioCtx.createBufferSource();
-            const noiseGain = audioCtx.createGain();
-            noiseSource.buffer = noiseBuffer;
-            noiseGain.gain.value = 0.04;
-            noiseSource.connect(noiseGain);
-            noiseGain.connect(musicGain);
-            noiseSource.start(sweepTime);
-            musicNodes.push({source: noiseSource});
-        });
-
-        // Schedule next loop
         setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 1) * 1000);
     }
 
@@ -473,7 +389,7 @@ function stopMusic() {
     musicNodes = [];
 }
 
-// ============ BOSS MUSIC - ABSOLUTE CHAOS ============
+// ============ BOSS MUSIC ============
 let bossMusic = false;
 
 function startBossMusic() {
@@ -481,14 +397,13 @@ function startBossMusic() {
     stopMusic();
     bossMusic = true;
 
-    const bpm = 160; // Faster, more intense
+    const bpm = 160;
     const beatTime = 60 / bpm;
     const now = audioCtx.currentTime;
 
-    // Terrifying chromatic descent
     const bossNotes = [
-        41.20, 38.89, 36.71, 34.65, // E1 descending chromatically
-        41.20, 38.89, 36.71, 32.70, // Down to C1
+        41.20, 38.89, 36.71, 34.65,
+        41.20, 38.89, 36.71, 32.70,
     ];
 
     const loopDuration = 16 * beatTime;
@@ -496,7 +411,6 @@ function startBossMusic() {
     function scheduleLoop(startTime) {
         if (!bossMusic) return;
 
-        // ===== DOUBLE KICK ASSAULT =====
         for (let beat = 0; beat < 32; beat++) {
             const kickTime = startTime + beat * beatTime * 0.5;
 
@@ -505,35 +419,18 @@ function startBossMusic() {
             kickOsc.type = 'sine';
             kickOsc.frequency.setValueAtTime(90, kickTime);
             kickOsc.frequency.exponentialRampToValueAtTime(28, kickTime + 0.1);
-            kickGain.gain.setValueAtTime(0.5, kickTime);
+            kickGain.gain.setValueAtTime(0.4, kickTime);
             kickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.15);
             kickOsc.connect(kickGain);
             kickGain.connect(musicGain);
             kickOsc.start(kickTime);
             kickOsc.stop(kickTime + 0.2);
             musicNodes.push({osc: kickOsc});
-
-            // Industrial punch
-            const punchBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.02, audioCtx.sampleRate);
-            const punchData = punchBuffer.getChannelData(0);
-            for (let j = 0; j < punchBuffer.length; j++) {
-                punchData[j] = Math.sin(j * 0.5) * Math.pow(1 - j / punchBuffer.length, 5);
-            }
-            const punchSource = audioCtx.createBufferSource();
-            const punchGain = audioCtx.createGain();
-            punchSource.buffer = punchBuffer;
-            punchGain.gain.value = 0.2;
-            punchSource.connect(punchGain);
-            punchGain.connect(musicGain);
-            punchSource.start(kickTime);
-            musicNodes.push({source: punchSource});
         }
 
-        // ===== CRUSHING SNARE =====
         for (let beat = 0; beat < 16; beat++) {
             if (beat % 2 === 1) {
                 const snareTime = startTime + beat * beatTime;
-
                 const snareBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.12, audioCtx.sampleRate);
                 const snareData = snareBuffer.getChannelData(0);
                 for (let j = 0; j < snareBuffer.length; j++) {
@@ -544,7 +441,7 @@ function startBossMusic() {
                 const snareSource = audioCtx.createBufferSource();
                 const snareGain = audioCtx.createGain();
                 snareSource.buffer = snareBuffer;
-                snareGain.gain.value = 0.22;
+                snareGain.gain.value = 0.18;
                 snareSource.connect(snareGain);
                 snareGain.connect(musicGain);
                 snareSource.start(snareTime);
@@ -552,7 +449,6 @@ function startBossMusic() {
             }
         }
 
-        // ===== GRINDING DISTORTED BASS =====
         for (let i = 0; i < 8; i++) {
             const bassTime = startTime + i * 2 * beatTime;
             const bassNote = bossNotes[i % 8];
@@ -569,8 +465,8 @@ function startBossMusic() {
 
             distortion.curve = makeDistortionCurve(30);
 
-            bassGain.gain.setValueAtTime(0.15, bassTime);
-            bassGain.gain.linearRampToValueAtTime(0.1, bassTime + beatTime * 1.8);
+            bassGain.gain.setValueAtTime(0.12, bassTime);
+            bassGain.gain.linearRampToValueAtTime(0.08, bassTime + beatTime * 1.8);
 
             bassOsc.connect(distortion);
             bassOsc2.connect(distortion);
@@ -582,13 +478,12 @@ function startBossMusic() {
             bassOsc2.stop(bassTime + beatTime * 2);
             musicNodes.push({osc: bassOsc});
 
-            // Sub rumble
             const subOsc = audioCtx.createOscillator();
             const subGain = audioCtx.createGain();
             subOsc.type = 'sine';
             subOsc.frequency.value = bassNote;
-            subGain.gain.setValueAtTime(0.25, bassTime);
-            subGain.gain.linearRampToValueAtTime(0.15, bassTime + beatTime * 1.8);
+            subGain.gain.setValueAtTime(0.2, bassTime);
+            subGain.gain.linearRampToValueAtTime(0.12, bassTime + beatTime * 1.8);
             subOsc.connect(subGain);
             subGain.connect(musicGain);
             subOsc.start(bassTime);
@@ -596,30 +491,10 @@ function startBossMusic() {
             musicNodes.push({osc: subOsc});
         }
 
-        // ===== CHAOTIC SYNTH ARPEGGIO =====
-        for (let i = 0; i < 32; i++) {
-            const arpTime = startTime + i * beatTime * 0.5;
-            const note = 164.81 * Math.pow(1.0595, (i % 8) - 4); // Chromatic chaos
-
-            const arpOsc = audioCtx.createOscillator();
-            const arpGain = audioCtx.createGain();
-            arpOsc.type = 'square';
-            arpOsc.frequency.value = note;
-            arpGain.gain.setValueAtTime(0.04, arpTime);
-            arpGain.gain.exponentialRampToValueAtTime(0.001, arpTime + beatTime * 0.4);
-            arpOsc.connect(arpGain);
-            arpGain.connect(musicGain);
-            arpOsc.start(arpTime);
-            arpOsc.stop(arpTime + beatTime * 0.5);
-            musicNodes.push({osc: arpOsc});
-        }
-
-        // ===== WARNING SIREN - boss atmosphere =====
         const sirenOsc = audioCtx.createOscillator();
         const sirenGain = audioCtx.createGain();
         sirenOsc.type = 'sawtooth';
 
-        // Rising and falling siren
         for (let i = 0; i < 4; i++) {
             const t = startTime + i * 4 * beatTime;
             sirenOsc.frequency.setValueAtTime(200, t);
@@ -627,32 +502,12 @@ function startBossMusic() {
             sirenOsc.frequency.linearRampToValueAtTime(200, t + 4 * beatTime);
         }
 
-        sirenGain.gain.value = 0.03;
+        sirenGain.gain.value = 0.025;
         sirenOsc.connect(sirenGain);
         sirenGain.connect(musicGain);
         sirenOsc.start(startTime);
         sirenOsc.stop(startTime + loopDuration);
         musicNodes.push({osc: sirenOsc});
-
-        // ===== INDUSTRIAL NOISE HITS =====
-        [3, 7, 11, 15].forEach(beat => {
-            const hitTime = startTime + beat * beatTime;
-
-            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
-            const noiseData = noiseBuffer.getChannelData(0);
-            for (let j = 0; j < noiseBuffer.length; j++) {
-                const env = Math.pow(1 - j / noiseBuffer.length, 3);
-                noiseData[j] = (Math.random() * 2 - 1) * env;
-            }
-            const noiseSource = audioCtx.createBufferSource();
-            const noiseGain = audioCtx.createGain();
-            noiseSource.buffer = noiseBuffer;
-            noiseGain.gain.value = 0.12;
-            noiseSource.connect(noiseGain);
-            noiseGain.connect(musicGain);
-            noiseSource.start(hitTime);
-            musicNodes.push({source: noiseSource});
-        });
 
         setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 0.5) * 1000);
     }
@@ -687,24 +542,58 @@ const MATRIX_YELLOW = '#c8ff00';
 const MATRIX_RED = '#ff3232';
 const MATRIX_ORANGE = '#ff8c00';
 
+// ============ CINEMATIC INTRO ============
+const introLines = [
+    "GPS signal lost.",
+    "Visual navigation denied.",
+    "When you can't see... you predict.",
+    "VICTUS-1 // Contested Autonomy"
+];
+
+const loadingTips = [
+    "When vision fails, prediction prevails.",
+    "GPS is a luxury. Autonomy is a necessity.",
+    "Tight CEP wins the fight.",
+    "Trained in simulation. Proven in reality."
+];
+
+let introState = 'waiting'; // 'waiting', 'playing', 'done'
+let introLineIndex = 0;
+let introAlpha = 0;
+let introTimer = 0;
+let introPhase = 'fadeIn'; // 'fadeIn', 'hold', 'fadeOut'
+
 // ============ GAME STATE ============
-let gameState = 'title';
+let gameState = 'intro'; // 'intro', 'title', 'playing', 'gameover', 'victory', 'levelComplete'
 let score = 0;
 let highScore = 0;
 let level = 1;
 let levelKills = 0;
-let killsPerLevel = 12;
+let killsPerLevel = 10;
 let bossFight = false;
 let bossIntroTimer = 0;
 let frameCount = 0;
+let levelCompleteTimer = 0;
+let navMode = 'STANDARD';
+let navModeFlicker = 0;
+
+// Boss definitions for each level
+const BOSS_TYPES = {
+    1: { name: 'THE JAMMER', health: 300, color: '#ff00ff', ability: 'emp' },
+    2: { name: 'CLOUDBANK', health: 400, color: '#6666ff', ability: 'fog' },
+    3: { name: 'THE SPOOFER', health: 500, color: '#ffff00', ability: 'decoy' },
+    4: { name: 'DRIFT', health: 600, color: '#00ffff', ability: 'gravity' },
+    5: { name: 'BLACKOUT', health: 800, color: '#ff0000', ability: 'all' }
+};
 
 // Player
 const player = {
     x: 0, y: 0, width: 50, height: 40,
-    speed: 12, // Faster!
+    speed: 12,
     health: 100, maxHealth: 100,
     bombs: 1, kills: 0, killsForBomb: 12,
-    invincible: 0, shootTimer: 0, shootDelay: 6 // Faster shooting
+    invincible: 0, shootTimer: 0, shootDelay: 6,
+    driftX: 0, driftY: 0 // For gravity boss
 };
 
 // Arrays
@@ -716,11 +605,18 @@ let bombs = [];
 let boss = null;
 let bossBullets = [];
 let fireballs = [];
+let decoys = []; // For spoofer boss
+let fogZones = []; // For cloudbank boss
+let gravityWells = []; // For drift boss
+let empPulses = []; // For jammer boss
 
 // Touch state
 let touchX = null;
 let touchY = null;
 let touching = false;
+
+// HUD scramble effect for jammer boss
+let hudScramble = 0;
 
 // ============ METEOR GRAPHICS ============
 function drawMeteor(x, y, size, rotation, type) {
@@ -728,7 +624,6 @@ function drawMeteor(x, y, size, rotation, type) {
     ctx.translate(x, y);
     ctx.rotate(rotation);
 
-    // Create rocky meteor shape
     const points = [];
     const numPoints = 10;
     for (let i = 0; i < numPoints; i++) {
@@ -741,7 +636,6 @@ function drawMeteor(x, y, size, rotation, type) {
         });
     }
 
-    // Main body gradient
     const gradient = ctx.createRadialGradient(size * 0.3, -size * 0.3, 0, 0, 0, size);
     if (type === 'speedy') {
         gradient.addColorStop(0, '#ffcc00');
@@ -762,7 +656,6 @@ function drawMeteor(x, y, size, rotation, type) {
     ctx.fillStyle = gradient;
     ctx.fill();
 
-    // Craters
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     for (let i = 0; i < 3; i++) {
         const cx = (Math.random() - 0.5) * size * 0.8;
@@ -773,7 +666,6 @@ function drawMeteor(x, y, size, rotation, type) {
         ctx.fill();
     }
 
-    // Highlight edge
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -784,27 +676,29 @@ function drawMeteor(x, y, size, rotation, type) {
 }
 
 // ============ BOSS CLASS ============
-function createBoss() {
+function createBoss(levelNum) {
+    const bossType = BOSS_TYPES[Math.min(levelNum, 5)];
     return {
         x: canvas.width / 2,
         y: -200,
         targetY: canvas.height * 0.15,
-        size: 100,
-        health: 800,
-        maxHealth: 800,
+        size: 80 + levelNum * 10,
+        health: bossType.health,
+        maxHealth: bossType.health,
+        name: bossType.name,
+        color: bossType.color,
+        ability: bossType.ability,
         phase: 1,
         rotation: 0,
         moveAngle: 0,
-        moveSpeed: 3,
         shootTimer: 0,
         patternTimer: 0,
-        currentPattern: 0,
+        abilityTimer: 0,
         defeated: false,
         defeatTimer: 0,
-        // Movement
         targetX: canvas.width / 2,
         swooping: false,
-        swoopY: 0
+        level: levelNum
     };
 }
 
@@ -831,9 +725,15 @@ function updateBoss() {
             playExplosion();
         }
         if (boss.defeatTimer >= 180) {
-            gameState = 'victory';
+            // Level complete!
+            if (level >= 5) {
+                gameState = 'victory';
+            } else {
+                gameState = 'levelComplete';
+                levelCompleteTimer = 180;
+            }
             stopBossMusic();
-            score += 10000;
+            score += 2000 * level;
             if (score > highScore) highScore = score;
         }
         return;
@@ -846,98 +746,145 @@ function updateBoss() {
 
     boss.rotation += 0.02 * boss.phase;
     boss.patternTimer++;
+    boss.abilityTimer++;
 
-    // MOVEMENT - Boss moves around the screen!
-    boss.moveAngle += 0.02 * boss.phase;
+    // Movement
+    boss.moveAngle += 0.015 * boss.phase;
+    boss.targetX = canvas.width / 2 + Math.sin(boss.moveAngle) * (canvas.width * 0.3);
+    boss.y = boss.targetY + Math.sin(boss.moveAngle * 0.5) * 40;
 
-    if (boss.phase === 1) {
-        // Gentle side to side
-        boss.targetX = canvas.width / 2 + Math.sin(boss.moveAngle) * (canvas.width * 0.3);
-        boss.y = boss.targetY + Math.sin(boss.moveAngle * 0.5) * 30;
-    } else if (boss.phase === 2) {
-        // More aggressive movement
-        boss.targetX = canvas.width / 2 + Math.sin(boss.moveAngle * 1.5) * (canvas.width * 0.4);
-        boss.y = boss.targetY + Math.sin(boss.moveAngle) * 50;
-
-        // Occasional swoop toward player
-        if (boss.patternTimer % 300 === 0) {
-            boss.swooping = true;
-            boss.swoopY = boss.y;
-        }
-    } else {
-        // Phase 3 - Erratic, fast
-        boss.targetX = canvas.width / 2 + Math.sin(boss.moveAngle * 2) * (canvas.width * 0.35);
-        boss.targetX += Math.cos(boss.moveAngle * 3) * 50;
-        boss.y = boss.targetY + Math.sin(boss.moveAngle * 1.5) * 80;
-
-        // Frequent swoops
-        if (boss.patternTimer % 180 === 0) {
-            boss.swooping = true;
-            boss.swoopY = boss.y;
-        }
+    if (boss.patternTimer % (300 / boss.phase) === 0) {
+        boss.swooping = true;
     }
 
-    // Swoop attack
     if (boss.swooping) {
-        boss.y += 8;
-        if (boss.y > canvas.height * 0.5) {
+        boss.y += 6;
+        if (boss.y > canvas.height * 0.4) {
             boss.swooping = false;
         }
-    } else if (boss.y > boss.targetY + 100) {
-        boss.y -= 3;
+    } else if (boss.y > boss.targetY + 80) {
+        boss.y -= 2;
     }
 
-    // Smooth horizontal movement
     boss.x += (boss.targetX - boss.x) * 0.05;
+
+    // ============ BOSS ABILITIES ============
+
+    // THE JAMMER - EMP pulses that scramble HUD
+    if (boss.ability === 'emp' || boss.ability === 'all') {
+        if (boss.abilityTimer % (180 / boss.phase) === 0) {
+            empPulses.push({
+                x: boss.x,
+                y: boss.y,
+                radius: 0,
+                maxRadius: 400
+            });
+            navMode = 'DISRUPTED';
+            hudScramble = 60;
+        }
+    }
+
+    // CLOUDBANK - Fog zones
+    if (boss.ability === 'fog' || boss.ability === 'all') {
+        if (boss.abilityTimer % (200 / boss.phase) === 0) {
+            fogZones.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height * 0.6,
+                radius: 100 + Math.random() * 100,
+                life: 300
+            });
+        }
+    }
+
+    // THE SPOOFER - Decoy copies
+    if (boss.ability === 'decoy' || boss.ability === 'all') {
+        if (boss.abilityTimer % (240 / boss.phase) === 0 && decoys.length < 3) {
+            decoys.push({
+                x: boss.x + (Math.random() - 0.5) * 200,
+                y: boss.y + (Math.random() - 0.5) * 100,
+                size: boss.size * 0.8,
+                rotation: boss.rotation,
+                life: 180,
+                moveAngle: Math.random() * Math.PI * 2
+            });
+            navMode = 'PREDICTIVE';
+        }
+    }
+
+    // DRIFT - Gravity wells
+    if (boss.ability === 'gravity' || boss.ability === 'all') {
+        if (boss.abilityTimer % (150 / boss.phase) === 0 && gravityWells.length < 4) {
+            gravityWells.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height * 0.3 + Math.random() * canvas.height * 0.4,
+                strength: 0.3 + Math.random() * 0.3,
+                life: 240
+            });
+        }
+    }
+
+    // Update EMP pulses
+    empPulses = empPulses.filter(emp => {
+        emp.radius += 8;
+        return emp.radius < emp.maxRadius;
+    });
+
+    // Update fog zones
+    fogZones = fogZones.filter(fog => {
+        fog.life--;
+        return fog.life > 0;
+    });
+
+    // Update decoys
+    decoys = decoys.filter(decoy => {
+        decoy.life--;
+        decoy.moveAngle += 0.05;
+        decoy.x += Math.sin(decoy.moveAngle) * 2;
+        decoy.rotation += 0.02;
+        return decoy.life > 0;
+    });
+
+    // Update gravity wells
+    gravityWells = gravityWells.filter(well => {
+        well.life--;
+        // Apply gravity to player
+        const dx = well.x - (player.x + player.width/2);
+        const dy = well.y - (player.y + player.height/2);
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 200 && dist > 10) {
+            player.driftX += (dx / dist) * well.strength;
+            player.driftY += (dy / dist) * well.strength;
+        }
+        return well.life > 0;
+    });
+
+    // Reset nav mode if not disrupted
+    if (hudScramble <= 0 && decoys.length === 0) {
+        navMode = 'STANDARD';
+    }
 
     // ============ ATTACK PATTERNS ============
     boss.shootTimer++;
 
     // Pattern 1: Aimed fireballs
-    if (boss.shootTimer % Math.max(30, 60 - boss.phase * 15) === 0) {
+    if (boss.shootTimer % Math.max(25, 50 - boss.phase * 10) === 0) {
         const angle = Math.atan2(
             player.y + player.height/2 - boss.y,
             player.x + player.width/2 - boss.x
         );
-        createFireball(boss.x, boss.y + boss.size * 0.5, angle, 6 + boss.phase);
+        createFireball(boss.x, boss.y + boss.size * 0.5, angle, 5 + boss.phase);
         playBossShoot();
     }
 
     // Pattern 2: Spread shot
-    if (boss.shootTimer % Math.max(60, 120 - boss.phase * 30) === 0) {
-        const baseAngle = Math.PI / 2; // Downward
-        const spread = boss.phase === 3 ? 7 : 5;
+    if (boss.shootTimer % Math.max(50, 100 - boss.phase * 20) === 0) {
+        const baseAngle = Math.PI / 2;
+        const spread = 3 + boss.phase;
         for (let i = 0; i < spread; i++) {
-            const angle = baseAngle + (i - (spread-1)/2) * 0.2;
-            createFireball(boss.x, boss.y + boss.size * 0.5, angle, 5);
+            const angle = baseAngle + (i - (spread-1)/2) * 0.25;
+            createFireball(boss.x, boss.y + boss.size * 0.5, angle, 4);
         }
         playBossShoot();
-    }
-
-    // Pattern 3: Spiral (phase 2+)
-    if (boss.phase >= 2 && boss.shootTimer % 10 === 0) {
-        const spiralAngle = boss.shootTimer * 0.15;
-        createFireball(
-            boss.x + Math.cos(spiralAngle) * 50,
-            boss.y + Math.sin(spiralAngle) * 30 + 40,
-            spiralAngle + Math.PI/2,
-            4
-        );
-    }
-
-    // Pattern 4: Meteor shower (phase 3)
-    if (boss.phase === 3 && boss.shootTimer % 45 === 0) {
-        for (let i = 0; i < 3; i++) {
-            const x = Math.random() * canvas.width;
-            fireballs.push({
-                x: x,
-                y: -30,
-                vx: (Math.random() - 0.5) * 2,
-                vy: 8 + Math.random() * 4,
-                size: 20,
-                type: 'meteor'
-            });
-        }
     }
 
     // Update fireballs
@@ -945,12 +892,11 @@ function updateBoss() {
         f.x += f.vx;
         f.y += f.vy;
 
-        // Player collision
         if (player.invincible <= 0) {
             const dx = f.x - (player.x + player.width/2);
             const dy = f.y - (player.y + player.height/2);
             if (Math.sqrt(dx*dx + dy*dy) < f.size + 20) {
-                player.health -= 15;
+                player.health -= 12;
                 player.invincible = 30;
                 createExplosion(f.x, f.y, MATRIX_RED, 10);
                 return false;
@@ -966,7 +912,7 @@ function updateBoss() {
         const dy = bullet.y - boss.y;
         if (Math.sqrt(dx*dx + dy*dy) < boss.size) {
             bullets.splice(bi, 1);
-            boss.health -= 3;
+            boss.health -= 2;
             createExplosion(bullet.x, bullet.y, MATRIX_CYAN, 5);
             playBossHit();
             if (boss.health <= 0) {
@@ -980,10 +926,9 @@ function updateBoss() {
         const dx = boss.x - bomb.x;
         const dy = boss.y - bomb.y;
         if (Math.sqrt(dx*dx + dy*dy) < bomb.radius + boss.size) {
-            boss.health -= 10;
+            boss.health -= 8;
             if (boss.health <= 0) boss.defeated = true;
         }
-        // Clear fireballs
         fireballs = fireballs.filter(f => {
             const fdx = f.x - bomb.x;
             const fdy = f.y - bomb.y;
@@ -1004,13 +949,63 @@ function createFireball(x, y, angle, speed) {
         y: y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: 12,
+        size: 10,
         type: 'fireball'
     });
 }
 
 function drawBoss() {
     if (!boss) return;
+
+    // Draw decoys first (slightly transparent)
+    decoys.forEach(decoy => {
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        ctx.translate(decoy.x, decoy.y);
+        ctx.rotate(decoy.rotation);
+
+        ctx.strokeStyle = boss.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, decoy.size, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+    });
+
+    // Draw fog zones
+    fogZones.forEach(fog => {
+        const alpha = Math.min(0.7, fog.life / 100);
+        const gradient = ctx.createRadialGradient(fog.x, fog.y, 0, fog.x, fog.y, fog.radius);
+        gradient.addColorStop(0, `rgba(100, 100, 150, ${alpha})`);
+        gradient.addColorStop(1, 'rgba(100, 100, 150, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(fog.x, fog.y, fog.radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Draw gravity wells
+    gravityWells.forEach(well => {
+        const alpha = well.life / 240;
+        ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+        ctx.lineWidth = 2;
+        for (let r = 20; r < 80; r += 20) {
+            ctx.beginPath();
+            ctx.arc(well.x, well.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    });
+
+    // Draw EMP pulses
+    empPulses.forEach(emp => {
+        const alpha = 1 - emp.radius / emp.maxRadius;
+        ctx.strokeStyle = `rgba(255, 0, 255, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(emp.x, emp.y, emp.radius, 0, Math.PI * 2);
+        ctx.stroke();
+    });
 
     ctx.save();
     ctx.translate(boss.x, boss.y);
@@ -1020,9 +1015,7 @@ function drawBoss() {
     ctx.rotate(boss.rotation);
 
     const healthPercent = boss.health / boss.maxHealth;
-    const ringColor = boss.defeated ? MATRIX_RED :
-                      healthPercent < 0.3 ? '#ff4444' :
-                      healthPercent < 0.6 ? MATRIX_ORANGE : MATRIX_CYAN;
+    const ringColor = boss.defeated ? MATRIX_RED : boss.color;
 
     ctx.strokeStyle = ringColor;
     ctx.lineWidth = 4;
@@ -1030,7 +1023,6 @@ function drawBoss() {
     ctx.arc(0, 0, boss.size + 20, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Spokes
     for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
         ctx.beginPath();
@@ -1040,7 +1032,7 @@ function drawBoss() {
     }
     ctx.restore();
 
-    // Inner rotating ring (opposite direction)
+    // Inner rotating ring
     ctx.save();
     ctx.rotate(-boss.rotation * 1.5);
     ctx.strokeStyle = MATRIX_GREEN;
@@ -1048,17 +1040,9 @@ function drawBoss() {
     ctx.beginPath();
     ctx.arc(0, 0, boss.size * 0.7, 0, Math.PI * 2);
     ctx.stroke();
-
-    for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(angle) * boss.size * 0.3, Math.sin(angle) * boss.size * 0.3);
-        ctx.lineTo(Math.cos(angle) * boss.size * 0.7, Math.sin(angle) * boss.size * 0.7);
-        ctx.stroke();
-    }
     ctx.restore();
 
-    // Core - pulsing
+    // Core
     const pulse = 1 + Math.sin(frameCount * 0.1) * 0.1;
     const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size * 0.4 * pulse);
     coreGradient.addColorStop(0, '#ffffff');
@@ -1083,52 +1067,40 @@ function drawBoss() {
 
     ctx.restore();
 
-    // Health bar
-    const barWidth = 250;
+    // Boss name and health bar
+    const barWidth = 200;
     const barX = canvas.width/2 - barWidth/2;
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(barX - 2, 18, barWidth + 4, 24);
-    ctx.strokeStyle = MATRIX_RED;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(barX, 20, barWidth, 20);
-    ctx.fillStyle = healthPercent < 0.3 ? '#ff0000' : healthPercent < 0.6 ? MATRIX_ORANGE : MATRIX_RED;
-    ctx.fillRect(barX + 2, 22, (barWidth - 4) * healthPercent, 16);
 
-    // Phase indicator
-    ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = '14px Arial';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(barX - 2, 48, barWidth + 4, 24);
+
+    ctx.strokeStyle = boss.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(barX, 50, barWidth, 20);
+
+    ctx.fillStyle = healthPercent < 0.3 ? '#ff0000' : healthPercent < 0.6 ? MATRIX_ORANGE : boss.color;
+    ctx.fillRect(barX + 2, 52, (barWidth - 4) * healthPercent, 16);
+
+    ctx.fillStyle = boss.color;
+    ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`PHASE ${boss.phase}`, canvas.width/2, 55);
+    ctx.fillText(boss.name, canvas.width/2, 88);
 
     // Draw fireballs
     fireballs.forEach(f => {
         ctx.save();
         ctx.translate(f.x, f.y);
 
-        if (f.type === 'meteor') {
-            drawMeteor(0, 0, f.size, frameCount * 0.05, 'speedy');
-        } else {
-            // Fireball with trail
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, f.size);
-            gradient.addColorStop(0, '#ffffff');
-            gradient.addColorStop(0.3, '#ffff00');
-            gradient.addColorStop(0.6, '#ff6600');
-            gradient.addColorStop(1, 'rgba(255,0,0,0)');
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, f.size);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.3, '#ffff00');
+        gradient.addColorStop(0.6, '#ff6600');
+        gradient.addColorStop(1, 'rgba(255,0,0,0)');
 
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(0, 0, f.size, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Tail
-            ctx.fillStyle = 'rgba(255,100,0,0.5)';
-            ctx.beginPath();
-            ctx.moveTo(-f.vx * 2, -f.vy * 2);
-            ctx.lineTo(-f.size * 0.5, 0);
-            ctx.lineTo(f.size * 0.5, 0);
-            ctx.closePath();
-            ctx.fill();
-        }
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     });
@@ -1171,6 +1143,8 @@ function resetGame() {
     player.bombs = 1;
     player.kills = 0;
     player.invincible = 0;
+    player.driftX = 0;
+    player.driftY = 0;
     score = 0;
     level = 1;
     levelKills = 0;
@@ -1181,29 +1155,67 @@ function resetGame() {
     particles = [];
     bombs = [];
     fireballs = [];
+    decoys = [];
+    fogZones = [];
+    gravityWells = [];
+    empPulses = [];
+    hudScramble = 0;
+    navMode = 'STANDARD';
     initStars();
     gameState = 'playing';
     stopBossMusic();
     startMusic();
 }
 
+function startNextLevel() {
+    level++;
+    levelKills = 0;
+    bossFight = false;
+    boss = null;
+    fireballs = [];
+    decoys = [];
+    fogZones = [];
+    gravityWells = [];
+    empPulses = [];
+    hudScramble = 0;
+    navMode = 'STANDARD';
+    player.health = Math.min(100, player.health + 30); // Heal a bit
+    player.bombs++;
+    gameState = 'playing';
+    stopBossMusic();
+    startMusic();
+}
+
+// ============ DIFFICULTY SCALING ============
+function getLevelDifficulty() {
+    // Returns difficulty multipliers based on level
+    return {
+        asteroidSpeed: 1 + (level - 1) * 0.15,      // 15% faster per level
+        spawnRate: 0.02 + (level - 1) * 0.008,      // More frequent spawns
+        asteroidTypes: Math.min(level, 5),           // More types available
+        killsRequired: killsPerLevel + (level - 1) * 3 // More kills per level
+    };
+}
+
 // ============ SPAWN ASTEROID ============
 function spawnAsteroid() {
+    const diff = getLevelDifficulty();
+
     const types = ['small'];
-    if (level >= 2) types.push('medium');
-    if (level >= 3) types.push('speedy');
-    if (level >= 5) types.push('large');
-    if (level >= 7) types.push('huge');
+    if (diff.asteroidTypes >= 2) types.push('medium');
+    if (diff.asteroidTypes >= 3) types.push('speedy');
+    if (diff.asteroidTypes >= 4) types.push('large');
+    if (diff.asteroidTypes >= 5) types.push('huge');
 
     const type = types[Math.floor(Math.random() * types.length)];
     let size, speed, health, points;
 
     switch(type) {
-        case 'small': size = 22; speed = 4 + Math.random() * 3; health = 1; points = 10; break;
-        case 'medium': size = 38; speed = 3 + Math.random() * 2; health = 2; points = 25; break;
-        case 'speedy': size = 18; speed = 8 + Math.random() * 4; health = 1; points = 30; break;
-        case 'large': size = 55; speed = 2 + Math.random() * 1.5; health = 4; points = 60; break;
-        case 'huge': size = 75; speed = 1.5 + Math.random(); health = 6; points = 100; break;
+        case 'small': size = 22; speed = (3 + Math.random() * 2) * diff.asteroidSpeed; health = 1; points = 10; break;
+        case 'medium': size = 38; speed = (2 + Math.random() * 1.5) * diff.asteroidSpeed; health = 2; points = 25; break;
+        case 'speedy': size = 18; speed = (6 + Math.random() * 3) * diff.asteroidSpeed; health = 1; points = 30; break;
+        case 'large': size = 55; speed = (1.5 + Math.random() * 1) * diff.asteroidSpeed; health = 4; points = 60; break;
+        case 'huge': size = 75; speed = (1 + Math.random() * 0.5) * diff.asteroidSpeed; health = 6; points = 100; break;
     }
 
     asteroids.push({
@@ -1212,17 +1224,15 @@ function spawnAsteroid() {
         size, speed, health, points, type,
         rotation: Math.random() * Math.PI * 2,
         rotSpeed: (Math.random() - 0.5) * 0.08,
-        seed: Math.random() * 1000 // For consistent random shape
+        seed: Math.random() * 1000
     });
 }
 
 // ============ UPDATE ============
 function update() {
-    if (gameState !== 'playing') return;
-
     frameCount++;
 
-    // Update stars (faster!)
+    // Always update stars
     stars.forEach(star => {
         star.y += star.speed;
         if (star.y > canvas.height) {
@@ -1230,6 +1240,31 @@ function update() {
             star.x = Math.random() * canvas.width;
         }
     });
+
+    // Handle intro
+    if (gameState === 'intro') {
+        updateIntro();
+        return;
+    }
+
+    if (gameState === 'levelComplete') {
+        levelCompleteTimer--;
+        if (levelCompleteTimer <= 0) {
+            startNextLevel();
+        }
+        return;
+    }
+
+    if (gameState !== 'playing') return;
+
+    // Decay HUD scramble
+    if (hudScramble > 0) hudScramble--;
+
+    // Apply and decay drift
+    player.x += player.driftX;
+    player.y += player.driftY;
+    player.driftX *= 0.95;
+    player.driftY *= 0.95;
 
     // Player movement
     if (touching && touchX !== null) {
@@ -1244,9 +1279,9 @@ function update() {
     }
 
     player.x = Math.max(10, Math.min(canvas.width - player.width - 10, player.x));
-    player.y = Math.max(50, Math.min(canvas.height - player.height - 50, player.y));
+    player.y = Math.max(50, Math.min(canvas.height - player.height - 80, player.y));
 
-    // Auto-shoot (no sound - only on hit!)
+    // Auto-shoot
     player.shootTimer--;
     if (player.shootTimer <= 0) {
         bullets.push({
@@ -1271,8 +1306,9 @@ function update() {
         return;
     }
 
-    // Spawn asteroids (more frequent)
-    if (Math.random() < 0.03 + level * 0.008) {
+    // Spawn asteroids
+    const diff = getLevelDifficulty();
+    if (Math.random() < diff.spawnRate) {
         spawnAsteroid();
     }
 
@@ -1296,7 +1332,7 @@ function update() {
 
                 if (asteroid.health <= 0) {
                     createExplosion(asteroid.x, asteroid.y, MATRIX_GREEN, 18);
-                    playExplosion(); // Sound only when destroyed!
+                    playExplosion();
                     score += asteroid.points;
                     levelKills++;
                     player.kills++;
@@ -1358,18 +1394,13 @@ function update() {
         return p.life > 0;
     });
 
-    // Level progression
-    if (levelKills >= killsPerLevel + (level - 1) * 4) {
-        if (level >= 10) {
-            bossFight = true;
-            boss = createBoss();
-            bossIntroTimer = 150;
-            stopMusic();
-            setTimeout(() => startBossMusic(), 1000);
-        } else {
-            level++;
-            levelKills = 0;
-        }
+    // Level progression - boss at end of each level
+    if (levelKills >= diff.killsRequired) {
+        bossFight = true;
+        boss = createBoss(level);
+        bossIntroTimer = 150;
+        stopMusic();
+        setTimeout(() => startBossMusic(), 1000);
     }
 
     if (player.health <= 0) {
@@ -1379,20 +1410,59 @@ function update() {
     }
 }
 
+function updateIntro() {
+    introTimer++;
+
+    if (introPhase === 'fadeIn') {
+        introAlpha += 0.02;
+        if (introAlpha >= 1) {
+            introAlpha = 1;
+            introPhase = 'hold';
+            introTimer = 0;
+        }
+    } else if (introPhase === 'hold') {
+        if (introTimer >= 90) { // ~1.5 seconds
+            introPhase = 'fadeOut';
+            introTimer = 0;
+        }
+    } else if (introPhase === 'fadeOut') {
+        introAlpha -= 0.02;
+        if (introAlpha <= 0) {
+            introAlpha = 0;
+            introLineIndex++;
+            if (introLineIndex >= introLines.length) {
+                gameState = 'title';
+            } else {
+                introPhase = 'fadeIn';
+            }
+        }
+    }
+}
+
 // ============ DRAW ============
 function draw() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Stars
+    // Stars (always visible)
     stars.forEach(star => {
         const alpha = 0.3 + star.speed / 8;
         ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
         ctx.fillRect(star.x, star.y, star.size, star.size * 2);
     });
 
+    if (gameState === 'intro') {
+        drawIntro();
+        return;
+    }
+
     if (gameState === 'title') {
         drawTitle();
+        return;
+    }
+
+    if (gameState === 'levelComplete') {
+        drawLevelComplete();
         return;
     }
 
@@ -1424,7 +1494,7 @@ function draw() {
     });
     ctx.globalAlpha = 1;
 
-    // Asteroids (realistic meteors!)
+    // Asteroids
     asteroids.forEach(a => {
         drawMeteor(a.x, a.y, a.size, a.rotation, a.type);
     });
@@ -1446,7 +1516,6 @@ function draw() {
 
     // Player
     if (player.invincible === 0 || Math.floor(player.invincible / 3) % 2 === 0) {
-        // Ship body
         ctx.fillStyle = MATRIX_GREEN;
         ctx.beginPath();
         ctx.moveTo(player.x + player.width/2, player.y);
@@ -1455,7 +1524,6 @@ function draw() {
         ctx.closePath();
         ctx.fill();
 
-        // Wings
         ctx.fillStyle = MATRIX_DARK_GREEN;
         ctx.beginPath();
         ctx.moveTo(player.x, player.y + player.height * 0.6);
@@ -1471,13 +1539,11 @@ function draw() {
         ctx.closePath();
         ctx.fill();
 
-        // Cockpit
         ctx.fillStyle = MATRIX_CYAN;
         ctx.beginPath();
         ctx.ellipse(player.x + player.width/2, player.y + player.height * 0.4, 6, 10, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Engine glow
         const flameHeight = 15 + Math.random() * 12;
         const gradient = ctx.createLinearGradient(
             player.x + player.width/2, player.y + player.height,
@@ -1505,13 +1571,13 @@ function draw() {
 
         if (Math.floor(bossIntroTimer / 12) % 2 === 0) {
             ctx.fillStyle = MATRIX_RED;
-            ctx.font = 'bold 56px Arial';
+            ctx.font = 'bold 48px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('WARNING!', canvas.width/2, canvas.height/2 - 30);
 
-            ctx.font = '28px Arial';
-            ctx.fillStyle = MATRIX_ORANGE;
-            ctx.fillText('BOSS APPROACHING', canvas.width/2, canvas.height/2 + 20);
+            ctx.font = '24px Arial';
+            ctx.fillStyle = boss.color;
+            ctx.fillText(boss.name + ' APPROACHING', canvas.width/2, canvas.height/2 + 20);
         }
     }
 
@@ -1519,65 +1585,118 @@ function draw() {
     if (gameState === 'victory') drawVictory();
 }
 
+function drawIntro() {
+    ctx.fillStyle = `rgba(0, 255, 65, ${introAlpha})`;
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(introLines[introLineIndex], canvas.width/2, canvas.height/2);
+}
+
 function drawTitle() {
     ctx.fillStyle = MATRIX_GREEN;
-    ctx.font = 'bold 56px Arial';
+    ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('VICTUS', canvas.width/2, canvas.height/3);
+    ctx.fillText('VICTUS-1', canvas.width/2, canvas.height/3);
 
     ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = '32px Arial';
-    ctx.fillText('SPACE SHOOTER', canvas.width/2, canvas.height/3 + 50);
+    ctx.font = '20px Arial';
+    ctx.fillText('CONTESTED AUTONOMY', canvas.width/2, canvas.height/3 + 35);
 
     ctx.fillStyle = '#fff';
-    ctx.font = '22px Arial';
+    ctx.font = '18px Arial';
     ctx.fillText('DRAG to move', canvas.width/2, canvas.height/2);
     ctx.fillStyle = MATRIX_YELLOW;
-    ctx.fillText('Tap BOMB button', canvas.width/2, canvas.height/2 + 40);
+    ctx.fillText('Tap BOMB to clear screen', canvas.width/2, canvas.height/2 + 30);
+
+    // Loading tip
+    ctx.fillStyle = MATRIX_DARK_GREEN;
+    ctx.font = '14px Arial';
+    const tip = loadingTips[Math.floor(frameCount / 180) % loadingTips.length];
+    ctx.fillText(tip, canvas.width/2, canvas.height * 0.65);
 
     ctx.fillStyle = MATRIX_GREEN;
-    ctx.font = '28px Arial';
+    ctx.font = '24px Arial';
     const pulse = 1 + Math.sin(frameCount * 0.1) * 0.1;
     ctx.save();
-    ctx.translate(canvas.width/2, canvas.height * 0.7);
+    ctx.translate(canvas.width/2, canvas.height * 0.78);
     ctx.scale(pulse, pulse);
     ctx.fillText('TAP TO START', 0, 0);
     ctx.restore();
 
     if (highScore > 0) {
         ctx.fillStyle = MATRIX_CYAN;
-        ctx.font = '20px Arial';
-        ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height * 0.82);
+        ctx.font = '18px Arial';
+        ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height * 0.88);
     }
 }
 
-function drawHUD() {
-    // VICTUS title - always visible at top center
+function drawLevelComplete() {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = MATRIX_GREEN;
+    ctx.font = 'bold 42px Arial';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 32px Arial';
+    ctx.fillText(`LEVEL ${level} COMPLETE`, canvas.width/2, canvas.height/2 - 40);
+
+    ctx.fillStyle = MATRIX_CYAN;
+    ctx.font = '24px Arial';
+    ctx.fillText(`Score: ${score}`, canvas.width/2, canvas.height/2 + 10);
+
+    ctx.fillStyle = MATRIX_YELLOW;
+    ctx.font = '18px Arial';
+    ctx.fillText('Preparing next level...', canvas.width/2, canvas.height/2 + 60);
+}
+
+function drawHUD() {
+    // Apply scramble effect
+    const scrambleOffset = hudScramble > 0 ? (Math.random() - 0.5) * 10 : 0;
+
+    // VICTUS-1 title - always visible at top center
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 28px Arial';
     const titleGlow = Math.sin(frameCount * 0.05) * 0.3 + 0.7;
     ctx.fillStyle = `rgba(0, 255, 65, ${titleGlow})`;
-    ctx.fillText('VICTUS', canvas.width/2, 32);
+    ctx.fillText('VICTUS-1', canvas.width/2 + scrambleOffset, 28);
+
+    // NAV MODE indicator
+    ctx.font = '12px Arial';
+    if (navMode === 'STANDARD') {
+        ctx.fillStyle = MATRIX_DARK_GREEN;
+    } else if (navMode === 'PREDICTIVE') {
+        ctx.fillStyle = MATRIX_YELLOW;
+    } else {
+        ctx.fillStyle = MATRIX_RED;
+    }
+
+    // Flicker effect for non-standard modes
+    if (navMode !== 'STANDARD' && Math.random() > 0.9) {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+    }
+    ctx.fillText(`NAV: ${navMode}`, canvas.width/2, 44);
 
     // Score - left side
     ctx.fillStyle = MATRIX_CYAN;
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText(`SCORE: ${score}`, 10, 55);
+    const scoreText = hudScramble > 0 ?
+        'SCORE: ' + String(score).split('').map(() => Math.floor(Math.random()*10)).join('') :
+        `SCORE: ${score}`;
+    ctx.fillText(scoreText, 10, 28);
 
     // Level - below title
     if (!bossFight) {
         ctx.textAlign = 'center';
         ctx.fillStyle = MATRIX_DARK_GREEN;
         ctx.font = '14px Arial';
-        ctx.fillText(`LEVEL ${level}/10`, canvas.width/2, 52);
+        ctx.fillText(`LEVEL ${level}/5`, canvas.width/2, 60);
     }
 
-    // Bomb button - moved down to avoid title
-    const btnX = canvas.width - 85;
-    const btnY = 60;
-    const btnW = 75;
-    const btnH = 55;
+    // ============ BOMB BUTTON - BOTTOM OF SCREEN ============
+    const btnW = 80;
+    const btnH = 60;
+    const btnX = canvas.width/2 - btnW/2;
+    const btnY = canvas.height - btnH - 10;
 
     ctx.fillStyle = 'rgba(0, 60, 0, 0.9)';
     ctx.fillRect(btnX, btnY, btnW, btnH);
@@ -1588,16 +1707,16 @@ function drawHUD() {
     ctx.fillStyle = player.bombs > 0 ? MATRIX_YELLOW : MATRIX_DARK_GREEN;
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(player.bombs.toString(), btnX + btnW/2, btnY + 32);
+    ctx.fillText(player.bombs.toString(), btnX + btnW/2, btnY + 35);
     ctx.fillStyle = MATRIX_DARK_GREEN;
     ctx.font = '12px Arial';
-    ctx.fillText('BOMB', btnX + btnW/2, btnY + 48);
+    ctx.fillText('BOMB', btnX + btnW/2, btnY + 52);
 
-    // Health bar
+    // Health bar - above bomb button
     const healthW = canvas.width - 20;
-    const healthH = 18;
+    const healthH = 16;
     const healthX = 10;
-    const healthY = canvas.height - 32;
+    const healthY = canvas.height - btnH - 40;
 
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(healthX - 2, healthY - 2, healthW + 4, healthH + 4);
@@ -1621,59 +1740,73 @@ function drawHUD() {
 
     // Level progress
     if (!bossFight) {
-        const needed = killsPerLevel + (level - 1) * 4;
+        const diff = getLevelDifficulty();
         ctx.fillStyle = MATRIX_DARK_GREEN;
-        ctx.font = '16px Arial';
+        ctx.font = '14px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText(`${levelKills}/${needed}`, canvas.width - 12, canvas.height - 50);
+        ctx.fillText(`${levelKills}/${diff.killsRequired}`, canvas.width - 12, healthY - 8);
     }
 }
 
 function drawGameOver() {
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = MATRIX_RED;
-    ctx.font = 'bold 52px Arial';
+    ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 60);
+    ctx.fillText('MISSION FAILED', canvas.width/2, canvas.height/2 - 60);
 
     ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = '28px Arial';
+    ctx.font = '24px Arial';
     ctx.fillText(`Score: ${score}`, canvas.width/2, canvas.height/2);
-    ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height/2 + 45);
+    ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height/2 + 40);
+
+    ctx.fillStyle = MATRIX_DARK_GREEN;
+    ctx.font = '14px Arial';
+    ctx.fillText('VICTUS-1 Autonomous Platform Lost', canvas.width/2, canvas.height/2 + 90);
 
     ctx.fillStyle = '#fff';
-    ctx.font = '24px Arial';
-    ctx.fillText('TAP TO RESTART', canvas.width/2, canvas.height/2 + 120);
+    ctx.font = '22px Arial';
+    ctx.fillText('TAP TO RESTART', canvas.width/2, canvas.height/2 + 140);
 }
 
 function drawVictory() {
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = MATRIX_GREEN;
-    ctx.font = 'bold 56px Arial';
+    ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('VICTORY!', canvas.width/2, canvas.height/2 - 60);
+    ctx.fillText('MISSION COMPLETE', canvas.width/2, canvas.height/2 - 80);
 
     ctx.fillStyle = MATRIX_YELLOW;
-    ctx.font = '24px Arial';
-    ctx.fillText('THE GALAXY IS SAVED', canvas.width/2, canvas.height/2 - 10);
+    ctx.font = '20px Arial';
+    ctx.fillText('CONTESTED NAVIGATOR', canvas.width/2, canvas.height/2 - 40);
 
     ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = '28px Arial';
-    ctx.fillText(`Final Score: ${score}`, canvas.width/2, canvas.height/2 + 40);
-    ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height/2 + 85);
+    ctx.font = '24px Arial';
+    ctx.fillText(`Final Score: ${score}`, canvas.width/2, canvas.height/2 + 10);
+    ctx.fillText(`High Score: ${highScore}`, canvas.width/2, canvas.height/2 + 50);
+
+    ctx.fillStyle = MATRIX_DARK_GREEN;
+    ctx.font = '14px Arial';
+    ctx.fillText('VICTUS-1 // Autonomy Proven', canvas.width/2, canvas.height/2 + 100);
 
     ctx.fillStyle = '#fff';
-    ctx.font = '24px Arial';
+    ctx.font = '22px Arial';
     ctx.fillText('TAP TO PLAY AGAIN', canvas.width/2, canvas.height/2 + 150);
 }
 
 // ============ INPUT ============
 function handleStart(x, y) {
     initAudio();
+
+    if (gameState === 'intro') {
+        // Skip intro
+        gameState = 'title';
+        return;
+    }
 
     if (gameState === 'title') {
         resetGame();
@@ -1685,9 +1818,13 @@ function handleStart(x, y) {
         return;
     }
 
-    // Bomb button
-    const btnX = canvas.width - 85;
-    if (x > btnX && y > 55 && y < 120) {
+    // Bomb button - NOW AT BOTTOM CENTER
+    const btnW = 80;
+    const btnH = 60;
+    const btnX = canvas.width/2 - btnW/2;
+    const btnY = canvas.height - btnH - 10;
+
+    if (x > btnX && x < btnX + btnW && y > btnY && y < btnY + btnH) {
         if (player.bombs > 0) {
             player.bombs--;
             bombs.push({
