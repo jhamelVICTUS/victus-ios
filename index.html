@@ -47,29 +47,29 @@ function initAudio() {
 // ============ SOUND EFFECTS ============
 function playExplosion() {
     if (!audioCtx) return;
-    // Punchy arcade explosion
-    const bufferSize = audioCtx.sampleRate * 0.25;
+    // Deep, subtle explosion - more thump, less shriek
+    const bufferSize = audioCtx.sampleRate * 0.2;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
 
     for (let i = 0; i < bufferSize; i++) {
         const t = i / audioCtx.sampleRate;
-        // Initial punch
-        let sample = 0;
-        if (i < bufferSize * 0.1) {
-            sample = Math.sin(2 * Math.PI * (150 - t * 500) * t) * (1 - i / (bufferSize * 0.1));
-        }
-        // Noise decay
-        sample += (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
-        // Low rumble
-        sample += Math.sin(2 * Math.PI * 60 * t) * 0.3 * Math.pow(1 - i / bufferSize, 2);
-        data[i] = sample * 0.7;
+        const env = Math.pow(1 - i / bufferSize, 2.5);
+
+        // Deep thump - low frequency only
+        const thump = Math.sin(2 * Math.PI * 45 * t) * 0.6;
+        const thump2 = Math.sin(2 * Math.PI * 30 * t) * 0.4;
+
+        // Subtle filtered noise - not harsh
+        const noise = (Math.random() * 2 - 1) * 0.15 * Math.pow(1 - i / bufferSize, 4);
+
+        data[i] = (thump + thump2 + noise) * env * 0.5;
     }
 
     const source = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
     source.buffer = buffer;
-    gain.gain.value = 0.4;
+    gain.gain.value = 0.25;
     source.connect(gain);
     gain.connect(audioCtx.destination);
     source.start();
@@ -147,227 +147,317 @@ function playWarning() {
     osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// ============ MUSIC SYSTEM - DEEP MATRIX DANCE ============
+// ============ MUSIC SYSTEM - NINE INCH NAILS INDUSTRIAL 8-BIT ============
 let musicPlaying = false;
 let musicNodes = [];
+
+// Create distortion curve for industrial crunch
+function makeDistortionCurve(amount) {
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+}
 
 function startMusic() {
     if (musicPlaying || !audioCtx) return;
     musicPlaying = true;
 
-    const bpm = 128; // Deep house tempo
+    const bpm = 140; // Faster, more aggressive
     const beatTime = 60 / bpm;
     const now = audioCtx.currentTime;
 
-    // 16-bar loop for longer, more immersive feel
-    const loopDuration = 16 * beatTime;
+    // 32-bar loop for long moody progression
+    const loopDuration = 32 * beatTime;
 
-    // Deep bass pattern - A minor for that dark Matrix feel
-    const bassNotes = [
-        55.00,  // A1
-        55.00,
-        51.91,  // Ab1
-        55.00,
-        58.27,  // Bb1
-        55.00,
-        51.91,
-        49.00,  // G1
-    ];
-
-    // Synth arpeggio - mysterious Matrix vibes
-    const arpNotes = [
-        220, 277.18, 329.63, 440,    // A3, C#4, E4, A4
-        220, 261.63, 329.63, 392,    // A3, C4, E4, G4
-        207.65, 261.63, 311.13, 415.30, // Ab3, C4, Eb4, Ab4
-        220, 277.18, 329.63, 440,    // A3, C#4, E4, A4
+    // Dark minor key progression - industrial dread
+    const bassSequence = [
+        41.20, 41.20, 41.20, 41.20, // E1 - grinding
+        38.89, 38.89, 38.89, 38.89, // Eb1 - tension
+        36.71, 36.71, 36.71, 36.71, // D1 - darker
+        41.20, 43.65, 41.20, 38.89, // E1, F1, E1, Eb1 - resolution
     ];
 
     function scheduleLoop(startTime) {
         if (!musicPlaying) return;
 
-        // ===== DEEP KICK DRUM - 4 on the floor =====
-        for (let beat = 0; beat < 16; beat++) {
+        // ===== INDUSTRIAL DISTORTED KICK - punishing =====
+        for (let beat = 0; beat < 32; beat++) {
             const kickTime = startTime + beat * beatTime;
 
-            // Main kick
-            const kickOsc = audioCtx.createOscillator();
-            const kickGain = audioCtx.createGain();
-            kickOsc.type = 'sine';
-            kickOsc.frequency.setValueAtTime(150, kickTime);
-            kickOsc.frequency.exponentialRampToValueAtTime(35, kickTime + 0.15);
-            kickGain.gain.setValueAtTime(0.5, kickTime);
-            kickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.3);
-            kickOsc.connect(kickGain);
-            kickGain.connect(musicGain);
-            kickOsc.start(kickTime);
-            kickOsc.stop(kickTime + 0.3);
-            musicNodes.push({osc: kickOsc});
+            // Layer 1: Sub punch
+            const kickSub = audioCtx.createOscillator();
+            const kickSubGain = audioCtx.createGain();
+            kickSub.type = 'sine';
+            kickSub.frequency.setValueAtTime(80, kickTime);
+            kickSub.frequency.exponentialRampToValueAtTime(30, kickTime + 0.12);
+            kickSubGain.gain.setValueAtTime(0.6, kickTime);
+            kickSubGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.2);
+            kickSub.connect(kickSubGain);
+            kickSubGain.connect(musicGain);
+            kickSub.start(kickTime);
+            kickSub.stop(kickTime + 0.25);
+            musicNodes.push({osc: kickSub});
 
-            // Kick click
-            const clickOsc = audioCtx.createOscillator();
+            // Layer 2: Distorted click
+            const clickBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.03, audioCtx.sampleRate);
+            const clickData = clickBuffer.getChannelData(0);
+            for (let j = 0; j < clickBuffer.length; j++) {
+                const t = j / audioCtx.sampleRate;
+                const env = Math.pow(1 - j / clickBuffer.length, 8);
+                // Harsh industrial click
+                clickData[j] = Math.sin(t * 4000) * env * 0.5 + (Math.random() - 0.5) * env * 0.3;
+            }
+            const clickSource = audioCtx.createBufferSource();
             const clickGain = audioCtx.createGain();
-            clickOsc.type = 'triangle';
-            clickOsc.frequency.value = 800;
-            clickGain.gain.setValueAtTime(0.1, kickTime);
-            clickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.02);
-            clickOsc.connect(clickGain);
+            clickSource.buffer = clickBuffer;
+            clickGain.gain.value = 0.15;
+            clickSource.connect(clickGain);
             clickGain.connect(musicGain);
-            clickOsc.start(kickTime);
-            clickOsc.stop(kickTime + 0.05);
-            musicNodes.push({osc: clickOsc});
+            clickSource.start(kickTime);
+            musicNodes.push({source: clickSource});
+
+            // Extra hit on off-beats for driving rhythm
+            if (beat % 2 === 1) {
+                const ghostKick = audioCtx.createOscillator();
+                const ghostGain = audioCtx.createGain();
+                ghostKick.type = 'triangle';
+                ghostKick.frequency.setValueAtTime(60, kickTime + beatTime * 0.5);
+                ghostKick.frequency.exponentialRampToValueAtTime(25, kickTime + beatTime * 0.5 + 0.08);
+                ghostGain.gain.setValueAtTime(0.25, kickTime + beatTime * 0.5);
+                ghostGain.gain.exponentialRampToValueAtTime(0.001, kickTime + beatTime * 0.5 + 0.1);
+                ghostKick.connect(ghostGain);
+                ghostGain.connect(musicGain);
+                ghostKick.start(kickTime + beatTime * 0.5);
+                ghostKick.stop(kickTime + beatTime * 0.5 + 0.15);
+                musicNodes.push({osc: ghostKick});
+            }
         }
 
-        // ===== OFF-BEAT HI-HAT =====
-        for (let i = 0; i < 32; i++) {
-            const hhTime = startTime + (i + 0.5) * beatTime * 0.5;
-            const hhBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+        // ===== INDUSTRIAL SNARE/CLAP - crushing =====
+        for (let beat = 0; beat < 32; beat++) {
+            if (beat % 2 === 1) {
+                const snareTime = startTime + beat * beatTime;
+
+                // Noise burst with pitch
+                const snareBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
+                const snareData = snareBuffer.getChannelData(0);
+                for (let j = 0; j < snareBuffer.length; j++) {
+                    const t = j / audioCtx.sampleRate;
+                    const env = Math.pow(1 - j / snareBuffer.length, 2);
+                    // Mix of noise and tone for industrial feel
+                    const tone = Math.sin(t * 180 * Math.PI * 2) * 0.4;
+                    const noise = (Math.random() * 2 - 1) * 0.6;
+                    snareData[j] = (tone + noise) * env;
+                }
+                const snareSource = audioCtx.createBufferSource();
+                const snareGain = audioCtx.createGain();
+                snareSource.buffer = snareBuffer;
+                snareGain.gain.value = 0.18;
+                snareSource.connect(snareGain);
+                snareGain.connect(musicGain);
+                snareSource.start(snareTime);
+                musicNodes.push({source: snareSource});
+            }
+        }
+
+        // ===== 16TH NOTE HI-HATS - relentless machine rhythm =====
+        for (let i = 0; i < 64; i++) {
+            const hhTime = startTime + i * beatTime * 0.5;
+            const isAccent = i % 4 === 0;
+
+            const hhBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
             const hhData = hhBuffer.getChannelData(0);
             for (let j = 0; j < hhBuffer.length; j++) {
-                hhData[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / hhBuffer.length, 4);
+                const env = Math.pow(1 - j / hhBuffer.length, isAccent ? 3 : 6);
+                // High-passed noise for metallic feel
+                hhData[j] = (Math.random() * 2 - 1) * env;
             }
             const hhSource = audioCtx.createBufferSource();
             const hhGain = audioCtx.createGain();
             hhSource.buffer = hhBuffer;
-            hhGain.gain.value = 0.08;
+            hhGain.gain.value = isAccent ? 0.09 : 0.04;
             hhSource.connect(hhGain);
             hhGain.connect(musicGain);
             hhSource.start(hhTime);
             musicNodes.push({source: hhSource});
         }
 
-        // ===== CLAP ON 2 AND 4 =====
-        for (let beat = 0; beat < 16; beat++) {
-            if (beat % 2 === 1) {
-                const clapTime = startTime + beat * beatTime;
-                const clapBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.12, audioCtx.sampleRate);
-                const clapData = clapBuffer.getChannelData(0);
-                for (let j = 0; j < clapBuffer.length; j++) {
-                    const env = Math.pow(1 - j / clapBuffer.length, 2);
-                    clapData[j] = (Math.random() * 2 - 1) * env;
-                }
-                const clapSource = audioCtx.createBufferSource();
-                const clapGain = audioCtx.createGain();
-                clapSource.buffer = clapBuffer;
-                clapGain.gain.value = 0.12;
-                clapSource.connect(clapGain);
-                clapGain.connect(musicGain);
-                clapSource.start(clapTime);
-                musicNodes.push({source: clapSource});
-            }
-        }
-
-        // ===== DEEP SUB BASS - pulsing =====
-        for (let i = 0; i < 8; i++) {
+        // ===== DISTORTED BASS - NIN style grinding =====
+        for (let i = 0; i < 16; i++) {
             const bassTime = startTime + i * 2 * beatTime;
-            const bassNote = bassNotes[i % 8];
+            const bassNote = bassSequence[i % 16];
 
-            // Sub sine
+            // Main bass - distorted square
+            const bassOsc = audioCtx.createOscillator();
+            const bassOsc2 = audioCtx.createOscillator();
+            const bassGain = audioCtx.createGain();
+            const distortion = audioCtx.createWaveShaper();
+
+            bassOsc.type = 'sawtooth';
+            bassOsc.frequency.value = bassNote;
+            bassOsc2.type = 'square';
+            bassOsc2.frequency.value = bassNote * 1.01; // Slight detune for thickness
+
+            distortion.curve = makeDistortionCurve(20);
+            distortion.oversample = '2x';
+
+            bassGain.gain.setValueAtTime(0, bassTime);
+            bassGain.gain.linearRampToValueAtTime(0.12, bassTime + 0.02);
+            bassGain.gain.setValueAtTime(0.1, bassTime + beatTime * 1.5);
+            bassGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.9);
+
+            bassOsc.connect(distortion);
+            bassOsc2.connect(distortion);
+            distortion.connect(bassGain);
+            bassGain.connect(musicGain);
+            bassOsc.start(bassTime);
+            bassOsc2.start(bassTime);
+            bassOsc.stop(bassTime + beatTime * 2);
+            bassOsc2.stop(bassTime + beatTime * 2);
+            musicNodes.push({osc: bassOsc});
+
+            // Sub layer for weight
             const subOsc = audioCtx.createOscillator();
             const subGain = audioCtx.createGain();
             subOsc.type = 'sine';
             subOsc.frequency.value = bassNote;
             subGain.gain.setValueAtTime(0, bassTime);
-            subGain.gain.linearRampToValueAtTime(0.25, bassTime + 0.05);
-            subGain.gain.setValueAtTime(0.2, bassTime + beatTime);
-            subGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.8);
+            subGain.gain.linearRampToValueAtTime(0.2, bassTime + 0.03);
+            subGain.gain.linearRampToValueAtTime(0.15, bassTime + beatTime);
+            subGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.9);
             subOsc.connect(subGain);
             subGain.connect(musicGain);
             subOsc.start(bassTime);
             subOsc.stop(bassTime + beatTime * 2);
             musicNodes.push({osc: subOsc});
-
-            // Sawtooth layer for grit
-            const sawOsc = audioCtx.createOscillator();
-            const sawGain = audioCtx.createGain();
-            sawOsc.type = 'sawtooth';
-            sawOsc.frequency.value = bassNote * 2;
-            sawGain.gain.setValueAtTime(0, bassTime);
-            sawGain.gain.linearRampToValueAtTime(0.06, bassTime + 0.05);
-            sawGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.5);
-            sawOsc.connect(sawGain);
-            sawGain.connect(musicGain);
-            sawOsc.start(bassTime);
-            sawOsc.stop(bassTime + beatTime * 2);
-            musicNodes.push({osc: sawOsc});
         }
 
-        // ===== MATRIX ARPEGGIO - mysterious synth =====
-        for (let i = 0; i < 16; i++) {
-            const arpTime = startTime + i * beatTime;
-            const noteIdx = i % 4;
-            const patternIdx = Math.floor(i / 4) % 4;
-            const arpNote = arpNotes[patternIdx * 4 + noteIdx];
+        // ===== DARK SYNTH STABS - 8-bit industrial =====
+        const stabPattern = [0, 4, 8, 12, 16, 20, 24, 28]; // Every 4 beats
+        const stabNotes = [164.81, 155.56, 146.83, 164.81]; // E3, Eb3, D3, E3
 
-            const arpOsc = audioCtx.createOscillator();
-            const arpOsc2 = audioCtx.createOscillator();
-            const arpGain = audioCtx.createGain();
+        stabPattern.forEach((beat, idx) => {
+            const stabTime = startTime + beat * beatTime;
+            const note = stabNotes[idx % stabNotes.length];
 
-            arpOsc.type = 'sawtooth';
-            arpOsc.frequency.value = arpNote;
-            arpOsc2.type = 'sawtooth';
-            arpOsc2.frequency.value = arpNote * 1.005; // Slight detune for thickness
+            // Bitcrushed square wave stab
+            const stabOsc = audioCtx.createOscillator();
+            const stabOsc2 = audioCtx.createOscillator();
+            const stabGain = audioCtx.createGain();
 
-            arpGain.gain.setValueAtTime(0, arpTime);
-            arpGain.gain.linearRampToValueAtTime(0.06, arpTime + 0.02);
-            arpGain.gain.exponentialRampToValueAtTime(0.001, arpTime + beatTime * 0.8);
+            stabOsc.type = 'square';
+            stabOsc.frequency.value = note;
+            stabOsc2.type = 'square';
+            stabOsc2.frequency.value = note * 2.01; // Octave up, slightly detuned
 
-            arpOsc.connect(arpGain);
-            arpOsc2.connect(arpGain);
-            arpGain.connect(musicGain);
-            arpOsc.start(arpTime);
-            arpOsc2.start(arpTime);
-            arpOsc.stop(arpTime + beatTime);
-            arpOsc2.stop(arpTime + beatTime);
-            musicNodes.push({osc: arpOsc});
-        }
+            stabGain.gain.setValueAtTime(0, stabTime);
+            stabGain.gain.linearRampToValueAtTime(0.08, stabTime + 0.01);
+            stabGain.gain.setValueAtTime(0.06, stabTime + beatTime * 0.5);
+            stabGain.gain.exponentialRampToValueAtTime(0.001, stabTime + beatTime * 1.5);
 
-        // ===== PAD - atmospheric wash =====
-        const padOsc1 = audioCtx.createOscillator();
-        const padOsc2 = audioCtx.createOscillator();
-        const padOsc3 = audioCtx.createOscillator();
-        const padGain = audioCtx.createGain();
+            stabOsc.connect(stabGain);
+            stabOsc2.connect(stabGain);
+            stabGain.connect(musicGain);
+            stabOsc.start(stabTime);
+            stabOsc2.start(stabTime);
+            stabOsc.stop(stabTime + beatTime * 2);
+            stabOsc2.stop(stabTime + beatTime * 2);
+            musicNodes.push({osc: stabOsc});
+        });
 
-        padOsc1.type = 'sine';
-        padOsc1.frequency.value = 110; // A2
-        padOsc2.type = 'sine';
-        padOsc2.frequency.value = 164.81; // E3
-        padOsc3.type = 'sine';
-        padOsc3.frequency.value = 220; // A3
+        // ===== MOODY DRONE PAD - atmospheric tension =====
+        const droneOsc1 = audioCtx.createOscillator();
+        const droneOsc2 = audioCtx.createOscillator();
+        const droneOsc3 = audioCtx.createOscillator();
+        const droneGain = audioCtx.createGain();
+        const droneLfo = audioCtx.createOscillator();
+        const droneLfoGain = audioCtx.createGain();
 
-        padGain.gain.setValueAtTime(0, startTime);
-        padGain.gain.linearRampToValueAtTime(0.04, startTime + 2);
-        padGain.gain.setValueAtTime(0.04, startTime + loopDuration - 2);
-        padGain.gain.linearRampToValueAtTime(0, startTime + loopDuration);
+        // Detuned saw waves for thick drone
+        droneOsc1.type = 'sawtooth';
+        droneOsc1.frequency.value = 82.41; // E2
+        droneOsc2.type = 'sawtooth';
+        droneOsc2.frequency.value = 82.41 * 1.003; // Slightly sharp
+        droneOsc3.type = 'sawtooth';
+        droneOsc3.frequency.value = 82.41 * 0.997; // Slightly flat
 
-        padOsc1.connect(padGain);
-        padOsc2.connect(padGain);
-        padOsc3.connect(padGain);
-        padGain.connect(musicGain);
-        padOsc1.start(startTime);
-        padOsc2.start(startTime);
-        padOsc3.start(startTime);
-        padOsc1.stop(startTime + loopDuration);
-        padOsc2.stop(startTime + loopDuration);
-        padOsc3.stop(startTime + loopDuration);
-        musicNodes.push({osc: padOsc1});
+        // LFO for movement
+        droneLfo.type = 'sine';
+        droneLfo.frequency.value = 0.15; // Slow pulse
+        droneLfoGain.gain.value = 0.02;
 
-        // ===== FX - risers every 8 bars =====
-        if (Math.random() > 0.3) {
-            const fxTime = startTime + 14 * beatTime;
-            const fxOsc = audioCtx.createOscillator();
-            const fxGain = audioCtx.createGain();
-            fxOsc.type = 'sawtooth';
-            fxOsc.frequency.setValueAtTime(200, fxTime);
-            fxOsc.frequency.exponentialRampToValueAtTime(2000, fxTime + beatTime * 2);
-            fxGain.gain.setValueAtTime(0, fxTime);
-            fxGain.gain.linearRampToValueAtTime(0.08, fxTime + beatTime);
-            fxGain.gain.linearRampToValueAtTime(0, fxTime + beatTime * 2);
-            fxOsc.connect(fxGain);
-            fxGain.connect(musicGain);
-            fxOsc.start(fxTime);
-            fxOsc.stop(fxTime + beatTime * 2);
-            musicNodes.push({osc: fxOsc});
-        }
+        droneGain.gain.setValueAtTime(0, startTime);
+        droneGain.gain.linearRampToValueAtTime(0.04, startTime + 4);
+        droneGain.gain.setValueAtTime(0.04, startTime + loopDuration - 4);
+        droneGain.gain.linearRampToValueAtTime(0, startTime + loopDuration);
+
+        droneLfo.connect(droneLfoGain);
+        droneLfoGain.connect(droneGain.gain);
+        droneOsc1.connect(droneGain);
+        droneOsc2.connect(droneGain);
+        droneOsc3.connect(droneGain);
+        droneGain.connect(musicGain);
+
+        droneOsc1.start(startTime);
+        droneOsc2.start(startTime);
+        droneOsc3.start(startTime);
+        droneLfo.start(startTime);
+        droneOsc1.stop(startTime + loopDuration);
+        droneOsc2.stop(startTime + loopDuration);
+        droneOsc3.stop(startTime + loopDuration);
+        droneLfo.stop(startTime + loopDuration);
+        musicNodes.push({osc: droneOsc1});
+
+        // ===== GLITCH FILLS - every 8 bars =====
+        [7, 15, 23, 31].forEach(beat => {
+            const fillTime = startTime + beat * beatTime;
+
+            // Rapid-fire glitchy hits
+            for (let i = 0; i < 8; i++) {
+                const hitTime = fillTime + i * beatTime * 0.125;
+                const hitOsc = audioCtx.createOscillator();
+                const hitGain = audioCtx.createGain();
+
+                hitOsc.type = 'square';
+                hitOsc.frequency.value = 200 + Math.random() * 800;
+
+                hitGain.gain.setValueAtTime(0.06, hitTime);
+                hitGain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.03);
+
+                hitOsc.connect(hitGain);
+                hitGain.connect(musicGain);
+                hitOsc.start(hitTime);
+                hitOsc.stop(hitTime + 0.05);
+                musicNodes.push({osc: hitOsc});
+            }
+        });
+
+        // ===== INDUSTRIAL NOISE SWEEPS - builds tension =====
+        [8, 24].forEach(beat => {
+            const sweepTime = startTime + beat * beatTime;
+            const sweepDuration = beatTime * 4;
+
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * sweepDuration, audioCtx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let j = 0; j < noiseBuffer.length; j++) {
+                const progress = j / noiseBuffer.length;
+                const env = Math.sin(progress * Math.PI) * 0.5;
+                noiseData[j] = (Math.random() * 2 - 1) * env;
+            }
+            const noiseSource = audioCtx.createBufferSource();
+            const noiseGain = audioCtx.createGain();
+            noiseSource.buffer = noiseBuffer;
+            noiseGain.gain.value = 0.04;
+            noiseSource.connect(noiseGain);
+            noiseGain.connect(musicGain);
+            noiseSource.start(sweepTime);
+            musicNodes.push({source: noiseSource});
+        });
 
         // Schedule next loop
         setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 1) * 1000);
@@ -387,7 +477,7 @@ function stopMusic() {
     musicNodes = [];
 }
 
-// ============ BOSS MUSIC ============
+// ============ BOSS MUSIC - ABSOLUTE CHAOS ============
 let bossMusic = false;
 
 function startBossMusic() {
@@ -395,82 +485,178 @@ function startBossMusic() {
     stopMusic();
     bossMusic = true;
 
-    const bpm = 120;
+    const bpm = 160; // Faster, more intense
     const beatTime = 60 / bpm;
     const now = audioCtx.currentTime;
 
-    // Ominous boss theme
-    const bassPattern = [
-        {note: 55.00, time: 0}, {note: 55.00, time: 1}, {note: 51.91, time: 2}, {note: 51.91, time: 3},
-        {note: 49.00, time: 4}, {note: 49.00, time: 5}, {note: 51.91, time: 6}, {note: 55.00, time: 7},
+    // Terrifying chromatic descent
+    const bossNotes = [
+        41.20, 38.89, 36.71, 34.65, // E1 descending chromatically
+        41.20, 38.89, 36.71, 32.70, // Down to C1
     ];
 
-    const loopDuration = 8 * beatTime;
+    const loopDuration = 16 * beatTime;
 
     function scheduleLoop(startTime) {
         if (!bossMusic) return;
 
-        // Deep bass drone
-        bassPattern.forEach(n => {
-            const osc = audioCtx.createOscillator();
-            const osc2 = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+        // ===== DOUBLE KICK ASSAULT =====
+        for (let beat = 0; beat < 32; beat++) {
+            const kickTime = startTime + beat * beatTime * 0.5;
 
-            osc.type = 'sawtooth';
-            osc.frequency.value = n.note;
-            osc2.type = 'sawtooth';
-            osc2.frequency.value = n.note * 1.01; // Slight detune
+            const kickOsc = audioCtx.createOscillator();
+            const kickGain = audioCtx.createGain();
+            kickOsc.type = 'sine';
+            kickOsc.frequency.setValueAtTime(90, kickTime);
+            kickOsc.frequency.exponentialRampToValueAtTime(28, kickTime + 0.1);
+            kickGain.gain.setValueAtTime(0.5, kickTime);
+            kickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.15);
+            kickOsc.connect(kickGain);
+            kickGain.connect(musicGain);
+            kickOsc.start(kickTime);
+            kickOsc.stop(kickTime + 0.2);
+            musicNodes.push({osc: kickOsc});
 
-            const noteStart = startTime + n.time * beatTime;
-            gain.gain.setValueAtTime(0.12, noteStart);
-            gain.gain.linearRampToValueAtTime(0.08, noteStart + beatTime * 0.8);
+            // Industrial punch
+            const punchBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.02, audioCtx.sampleRate);
+            const punchData = punchBuffer.getChannelData(0);
+            for (let j = 0; j < punchBuffer.length; j++) {
+                punchData[j] = Math.sin(j * 0.5) * Math.pow(1 - j / punchBuffer.length, 5);
+            }
+            const punchSource = audioCtx.createBufferSource();
+            const punchGain = audioCtx.createGain();
+            punchSource.buffer = punchBuffer;
+            punchGain.gain.value = 0.2;
+            punchSource.connect(punchGain);
+            punchGain.connect(musicGain);
+            punchSource.start(kickTime);
+            musicNodes.push({source: punchSource});
+        }
 
-            osc.connect(gain);
-            osc2.connect(gain);
-            gain.connect(musicGain);
-            osc.start(noteStart);
-            osc2.start(noteStart);
-            osc.stop(noteStart + beatTime);
-            osc2.stop(noteStart + beatTime);
-            musicNodes.push({osc, gain});
+        // ===== CRUSHING SNARE =====
+        for (let beat = 0; beat < 16; beat++) {
+            if (beat % 2 === 1) {
+                const snareTime = startTime + beat * beatTime;
+
+                const snareBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.12, audioCtx.sampleRate);
+                const snareData = snareBuffer.getChannelData(0);
+                for (let j = 0; j < snareBuffer.length; j++) {
+                    const t = j / audioCtx.sampleRate;
+                    const env = Math.pow(1 - j / snareBuffer.length, 1.5);
+                    snareData[j] = (Math.sin(t * 200 * Math.PI * 2) * 0.5 + (Math.random() * 2 - 1) * 0.5) * env;
+                }
+                const snareSource = audioCtx.createBufferSource();
+                const snareGain = audioCtx.createGain();
+                snareSource.buffer = snareBuffer;
+                snareGain.gain.value = 0.22;
+                snareSource.connect(snareGain);
+                snareGain.connect(musicGain);
+                snareSource.start(snareTime);
+                musicNodes.push({source: snareSource});
+            }
+        }
+
+        // ===== GRINDING DISTORTED BASS =====
+        for (let i = 0; i < 8; i++) {
+            const bassTime = startTime + i * 2 * beatTime;
+            const bassNote = bossNotes[i % 8];
+
+            const bassOsc = audioCtx.createOscillator();
+            const bassOsc2 = audioCtx.createOscillator();
+            const distortion = audioCtx.createWaveShaper();
+            const bassGain = audioCtx.createGain();
+
+            bassOsc.type = 'sawtooth';
+            bassOsc.frequency.value = bassNote;
+            bassOsc2.type = 'square';
+            bassOsc2.frequency.value = bassNote * 1.02;
+
+            distortion.curve = makeDistortionCurve(30);
+
+            bassGain.gain.setValueAtTime(0.15, bassTime);
+            bassGain.gain.linearRampToValueAtTime(0.1, bassTime + beatTime * 1.8);
+
+            bassOsc.connect(distortion);
+            bassOsc2.connect(distortion);
+            distortion.connect(bassGain);
+            bassGain.connect(musicGain);
+            bassOsc.start(bassTime);
+            bassOsc2.start(bassTime);
+            bassOsc.stop(bassTime + beatTime * 2);
+            bassOsc2.stop(bassTime + beatTime * 2);
+            musicNodes.push({osc: bassOsc});
+
+            // Sub rumble
+            const subOsc = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.value = bassNote;
+            subGain.gain.setValueAtTime(0.25, bassTime);
+            subGain.gain.linearRampToValueAtTime(0.15, bassTime + beatTime * 1.8);
+            subOsc.connect(subGain);
+            subGain.connect(musicGain);
+            subOsc.start(bassTime);
+            subOsc.stop(bassTime + beatTime * 2);
+            musicNodes.push({osc: subOsc});
+        }
+
+        // ===== CHAOTIC SYNTH ARPEGGIO =====
+        for (let i = 0; i < 32; i++) {
+            const arpTime = startTime + i * beatTime * 0.5;
+            const note = 164.81 * Math.pow(1.0595, (i % 8) - 4); // Chromatic chaos
+
+            const arpOsc = audioCtx.createOscillator();
+            const arpGain = audioCtx.createGain();
+            arpOsc.type = 'square';
+            arpOsc.frequency.value = note;
+            arpGain.gain.setValueAtTime(0.04, arpTime);
+            arpGain.gain.exponentialRampToValueAtTime(0.001, arpTime + beatTime * 0.4);
+            arpOsc.connect(arpGain);
+            arpGain.connect(musicGain);
+            arpOsc.start(arpTime);
+            arpOsc.stop(arpTime + beatTime * 0.5);
+            musicNodes.push({osc: arpOsc});
+        }
+
+        // ===== WARNING SIREN - boss atmosphere =====
+        const sirenOsc = audioCtx.createOscillator();
+        const sirenGain = audioCtx.createGain();
+        sirenOsc.type = 'sawtooth';
+
+        // Rising and falling siren
+        for (let i = 0; i < 4; i++) {
+            const t = startTime + i * 4 * beatTime;
+            sirenOsc.frequency.setValueAtTime(200, t);
+            sirenOsc.frequency.linearRampToValueAtTime(400, t + 2 * beatTime);
+            sirenOsc.frequency.linearRampToValueAtTime(200, t + 4 * beatTime);
+        }
+
+        sirenGain.gain.value = 0.03;
+        sirenOsc.connect(sirenGain);
+        sirenGain.connect(musicGain);
+        sirenOsc.start(startTime);
+        sirenOsc.stop(startTime + loopDuration);
+        musicNodes.push({osc: sirenOsc});
+
+        // ===== INDUSTRIAL NOISE HITS =====
+        [3, 7, 11, 15].forEach(beat => {
+            const hitTime = startTime + beat * beatTime;
+
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let j = 0; j < noiseBuffer.length; j++) {
+                const env = Math.pow(1 - j / noiseBuffer.length, 3);
+                noiseData[j] = (Math.random() * 2 - 1) * env;
+            }
+            const noiseSource = audioCtx.createBufferSource();
+            const noiseGain = audioCtx.createGain();
+            noiseSource.buffer = noiseBuffer;
+            noiseGain.gain.value = 0.12;
+            noiseSource.connect(noiseGain);
+            noiseGain.connect(musicGain);
+            noiseSource.start(hitTime);
+            musicNodes.push({source: noiseSource});
         });
-
-        // Pulsing synth
-        for (let i = 0; i < 16; i++) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.value = 220 * (i % 2 === 0 ? 1 : 1.5);
-
-            const noteStart = startTime + i * beatTime * 0.5;
-            gain.gain.setValueAtTime(0.05, noteStart);
-            gain.gain.linearRampToValueAtTime(0, noteStart + beatTime * 0.3);
-
-            osc.connect(gain);
-            gain.connect(musicGain);
-            osc.start(noteStart);
-            osc.stop(noteStart + beatTime * 0.4);
-            musicNodes.push({osc, gain});
-        }
-
-        // Heavy drums
-        for (let beat = 0; beat < 8; beat++) {
-            const beatStart = startTime + beat * beatTime;
-
-            // Deep kick
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(100, beatStart);
-            osc.frequency.exponentialRampToValueAtTime(30, beatStart + 0.2);
-            gain.gain.setValueAtTime(0.4, beatStart);
-            gain.gain.exponentialRampToValueAtTime(0.001, beatStart + 0.25);
-            osc.connect(gain);
-            gain.connect(musicGain);
-            osc.start(beatStart);
-            osc.stop(beatStart + 0.25);
-            musicNodes.push({osc, gain});
-        }
 
         setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 0.5) * 1000);
     }
