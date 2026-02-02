@@ -577,13 +577,13 @@ let levelCompleteTimer = 0;
 let navMode = 'STANDARD';
 let navModeFlicker = 0;
 
-// Boss definitions for each level - Level 1 is easier!
+// Boss definitions for each level - Easier bosses!
 const BOSS_TYPES = {
-    1: { name: 'THE JAMMER', health: 150, color: '#ff00ff', ability: 'emp' },
-    2: { name: 'CLOUDBANK', health: 250, color: '#6666ff', ability: 'fog' },
-    3: { name: 'THE SPOOFER', health: 350, color: '#ffff00', ability: 'decoy' },
-    4: { name: 'DRIFT', health: 450, color: '#00ffff', ability: 'gravity' },
-    5: { name: 'BLACKOUT', health: 600, color: '#ff0000', ability: 'all' }
+    1: { name: 'THE JAMMER', health: 100, color: '#ff00ff', ability: 'emp' },
+    2: { name: 'CLOUDBANK', health: 150, color: '#6666ff', ability: 'fog' },
+    3: { name: 'THE SPOOFER', health: 200, color: '#ffff00', ability: 'decoy' },
+    4: { name: 'DRIFT', health: 280, color: '#00ffff', ability: 'gravity' },
+    5: { name: 'BLACKOUT', health: 400, color: '#ff0000', ability: 'all' }
 };
 
 // Player
@@ -872,28 +872,28 @@ function updateBoss() {
     // ============ ATTACK PATTERNS ============
     boss.shootTimer++;
 
-    // Scale attack frequency by level (level 1 is slower)
-    const attackSpeedMult = 0.6 + boss.level * 0.1; // 0.7, 0.8, 0.9, 1.0, 1.1
+    // Scale attack frequency by level (level 1 is much slower)
+    const attackSpeedMult = 0.4 + boss.level * 0.12; // 0.52, 0.64, 0.76, 0.88, 1.0
 
-    // Pattern 1: Aimed fireballs
-    const fireballRate = Math.max(40, Math.floor((80 - boss.phase * 15) / attackSpeedMult));
+    // Pattern 1: Aimed fireballs - slower, less frequent
+    const fireballRate = Math.max(60, Math.floor((120 - boss.phase * 12) / attackSpeedMult));
     if (boss.shootTimer % fireballRate === 0) {
         const angle = Math.atan2(
             player.y + player.height/2 - boss.y,
             player.x + player.width/2 - boss.x
         );
-        createFireball(boss.x, boss.y + boss.size * 0.5, angle, 4 + boss.phase * 0.5);
+        createFireball(boss.x, boss.y + boss.size * 0.5, angle, 3 + boss.phase * 0.3);
         playBossShoot();
     }
 
-    // Pattern 2: Spread shot
-    const spreadRate = Math.max(80, Math.floor((150 - boss.phase * 25) / attackSpeedMult));
+    // Pattern 2: Spread shot - less frequent, fewer projectiles
+    const spreadRate = Math.max(120, Math.floor((200 - boss.phase * 20) / attackSpeedMult));
     if (boss.shootTimer % spreadRate === 0) {
         const baseAngle = Math.PI / 2;
-        const spread = 2 + boss.phase; // Less spread for easier bosses
+        const spread = 2 + Math.floor(boss.phase / 2); // 2-3 projectiles only
         for (let i = 0; i < spread; i++) {
-            const angle = baseAngle + (i - (spread-1)/2) * 0.3;
-            createFireball(boss.x, boss.y + boss.size * 0.5, angle, 3 + boss.level * 0.3);
+            const angle = baseAngle + (i - (spread-1)/2) * 0.35;
+            createFireball(boss.x, boss.y + boss.size * 0.5, angle, 2.5 + boss.level * 0.2);
         }
         playBossShoot();
     }
@@ -1201,10 +1201,10 @@ function startNextLevel() {
 function getLevelDifficulty() {
     // Returns difficulty multipliers based on level
     return {
-        asteroidSpeed: 1 + (level - 1) * 0.12,      // 12% faster per level
-        spawnRate: 0.018 + (level - 1) * 0.006,     // More frequent spawns
+        asteroidSpeed: 1 + (level - 1) * 0.10,      // 10% faster per level
+        spawnRate: 0.016 + (level - 1) * 0.005,     // More frequent spawns
         asteroidTypes: Math.min(level, 5),           // More types available
-        killsRequired: 15 + (level - 1) * 5          // 15, 20, 25, 30, 35 kills per level
+        killsRequired: 25 + (level - 1) * 8          // 25, 33, 41, 49, 57 kills per level
     };
 }
 
