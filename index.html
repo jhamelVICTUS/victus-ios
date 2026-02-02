@@ -1201,10 +1201,10 @@ function startNextLevel() {
 function getLevelDifficulty() {
     // Returns difficulty multipliers based on level
     return {
-        asteroidSpeed: 1 + (level - 1) * 0.10,      // 10% faster per level
-        spawnRate: 0.016 + (level - 1) * 0.005,     // More frequent spawns
+        asteroidSpeed: 1 + (level - 1) * 0.08,      // 8% faster per level
+        spawnRate: 0.014 + (level - 1) * 0.004,     // More frequent spawns
         asteroidTypes: Math.min(level, 5),           // More types available
-        killsRequired: 25 + (level - 1) * 8          // 25, 33, 41, 49, 57 kills per level
+        killsRequired: 50 + (level - 1) * 15         // 50, 65, 80, 95, 110 kills per level
     };
 }
 
@@ -1608,14 +1608,24 @@ function drawIntro() {
 }
 
 function drawTitle() {
-    ctx.fillStyle = MATRIX_GREEN;
-    ctx.font = 'bold 48px Arial';
+    // VICTUS logo - clean modern style matching official branding
     ctx.textAlign = 'center';
-    ctx.fillText('VICTUS-1', canvas.width/2, canvas.height/3);
+    ctx.font = '600 52px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillStyle = MATRIX_GREEN;
+
+    // Draw each letter with spacing to match the official logo
+    const letters = ['V', 'I', 'C', 'T', 'U', 'S'];
+    const spacing = 42;
+    const startX = canvas.width/2 - (letters.length - 1) * spacing / 2;
+    const logoY = canvas.height/3;
+    letters.forEach((letter, i) => {
+        ctx.fillText(letter, startX + i * spacing, logoY);
+    });
 
     ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = '20px Arial';
-    ctx.fillText('CONTESTED AUTONOMY', canvas.width/2, canvas.height/3 + 35);
+    ctx.font = '600 16px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('CONTESTED AUTONOMY', canvas.width/2, logoY + 35);
 
     ctx.fillStyle = '#fff';
     ctx.font = '18px Arial';
@@ -1667,12 +1677,19 @@ function drawHUD() {
     // Apply scramble effect
     const scrambleOffset = hudScramble > 0 ? (Math.random() - 0.5) * 10 : 0;
 
-    // VICTUS-1 title - always visible at top center
+    // VICTUS logo - clean modern style with letter spacing
     ctx.textAlign = 'center';
-    ctx.font = 'bold 28px Arial';
-    const titleGlow = Math.sin(frameCount * 0.05) * 0.3 + 0.7;
+    ctx.font = '600 26px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    const titleGlow = Math.sin(frameCount * 0.05) * 0.2 + 0.8;
     ctx.fillStyle = `rgba(0, 255, 65, ${titleGlow})`;
-    ctx.fillText('VICTUS-1', canvas.width/2 + scrambleOffset, 28);
+
+    // Draw each letter with spacing to match the official logo
+    const letters = ['V', 'I', 'C', 'T', 'U', 'S'];
+    const spacing = 22;
+    const startX = canvas.width/2 - (letters.length - 1) * spacing / 2 + scrambleOffset;
+    letters.forEach((letter, i) => {
+        ctx.fillText(letter, startX + i * spacing, 28);
+    });
 
     // NAV MODE indicator
     ctx.font = '12px Arial';
@@ -1707,10 +1724,10 @@ function drawHUD() {
         ctx.fillText(`LEVEL ${level}/5`, canvas.width/2, 60);
     }
 
-    // ============ BOMB BUTTON - BOTTOM OF SCREEN ============
+    // ============ BOMB BUTTON - BOTTOM RIGHT ============
     const btnW = 80;
     const btnH = 60;
-    const btnX = canvas.width/2 - btnW/2;
+    const btnX = canvas.width - btnW - 15;
     const btnY = canvas.height - btnH - 10;
 
     ctx.fillStyle = 'rgba(0, 60, 0, 0.9)';
@@ -1833,10 +1850,10 @@ function handleStart(x, y) {
         return;
     }
 
-    // Bomb button - NOW AT BOTTOM CENTER
+    // Bomb button - BOTTOM RIGHT
     const btnW = 80;
     const btnH = 60;
-    const btnX = canvas.width/2 - btnW/2;
+    const btnX = canvas.width - btnW - 15;
     const btnY = canvas.height - btnH - 10;
 
     if (x > btnX && x < btnX + btnW && y > btnY && y < btnY + btnH) {
