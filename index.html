@@ -147,7 +147,7 @@ function playWarning() {
     osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// ============ MUSIC SYSTEM ============
+// ============ MUSIC SYSTEM - DEEP MATRIX DANCE ============
 let musicPlaying = false;
 let musicNodes = [];
 
@@ -155,151 +155,222 @@ function startMusic() {
     if (musicPlaying || !audioCtx) return;
     musicPlaying = true;
 
-    const bpm = 150; // Fast tempo
+    const bpm = 128; // Deep house tempo
     const beatTime = 60 / bpm;
     const now = audioCtx.currentTime;
 
-    // Double Dragon style music - 8 bar loop
-    const bassPattern = [
-        // Bar 1-2: E minor groove
-        {note: 82.41, time: 0}, {note: 82.41, time: 0.5}, {note: 98.00, time: 1}, {note: 82.41, time: 1.5},
-        {note: 110.00, time: 2}, {note: 98.00, time: 2.5}, {note: 82.41, time: 3}, {note: 73.42, time: 3.5},
-        // Bar 3-4: Build up
-        {note: 82.41, time: 4}, {note: 98.00, time: 4.5}, {note: 110.00, time: 5}, {note: 123.47, time: 5.5},
-        {note: 130.81, time: 6}, {note: 123.47, time: 6.5}, {note: 110.00, time: 7}, {note: 98.00, time: 7.5},
+    // 16-bar loop for longer, more immersive feel
+    const loopDuration = 16 * beatTime;
+
+    // Deep bass pattern - A minor for that dark Matrix feel
+    const bassNotes = [
+        55.00,  // A1
+        55.00,
+        51.91,  // Ab1
+        55.00,
+        58.27,  // Bb1
+        55.00,
+        51.91,
+        49.00,  // G1
     ];
 
-    const melodyPattern = [
-        // Heroic melody
-        {note: 329.63, time: 0, dur: 0.4}, {note: 392.00, time: 0.5, dur: 0.4},
-        {note: 440.00, time: 1, dur: 0.8}, {note: 392.00, time: 2, dur: 0.4},
-        {note: 329.63, time: 2.5, dur: 0.4}, {note: 293.66, time: 3, dur: 0.4},
-        {note: 329.63, time: 3.5, dur: 0.4}, {note: 392.00, time: 4, dur: 0.8},
-        {note: 440.00, time: 5, dur: 0.4}, {note: 493.88, time: 5.5, dur: 0.4},
-        {note: 523.25, time: 6, dur: 0.8}, {note: 493.88, time: 7, dur: 0.4},
-        {note: 440.00, time: 7.5, dur: 0.4},
+    // Synth arpeggio - mysterious Matrix vibes
+    const arpNotes = [
+        220, 277.18, 329.63, 440,    // A3, C#4, E4, A4
+        220, 261.63, 329.63, 392,    // A3, C4, E4, G4
+        207.65, 261.63, 311.13, 415.30, // Ab3, C4, Eb4, Ab4
+        220, 277.18, 329.63, 440,    // A3, C#4, E4, A4
     ];
-
-    const loopDuration = 8 * beatTime;
 
     function scheduleLoop(startTime) {
         if (!musicPlaying) return;
 
-        // Bass - square wave
-        bassPattern.forEach(n => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.value = n.note;
-
-            const noteStart = startTime + n.time * beatTime;
-            gain.gain.setValueAtTime(0, noteStart);
-            gain.gain.linearRampToValueAtTime(0.15, noteStart + 0.02);
-            gain.gain.setValueAtTime(0.12, noteStart + beatTime * 0.3);
-            gain.gain.linearRampToValueAtTime(0, noteStart + beatTime * 0.45);
-
-            osc.connect(gain);
-            gain.connect(musicGain);
-            osc.start(noteStart);
-            osc.stop(noteStart + beatTime * 0.5);
-            musicNodes.push({osc, gain});
-        });
-
-        // Sub bass
-        bassPattern.forEach(n => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = n.note * 0.5;
-
-            const noteStart = startTime + n.time * beatTime;
-            gain.gain.setValueAtTime(0.1, noteStart);
-            gain.gain.linearRampToValueAtTime(0, noteStart + beatTime * 0.4);
-
-            osc.connect(gain);
-            gain.connect(musicGain);
-            osc.start(noteStart);
-            osc.stop(noteStart + beatTime * 0.5);
-            musicNodes.push({osc, gain});
-        });
-
-        // Melody - triangle wave
-        melodyPattern.forEach(n => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.value = n.note;
-
-            const noteStart = startTime + n.time * beatTime;
-            const noteDur = n.dur * beatTime;
-            gain.gain.setValueAtTime(0, noteStart);
-            gain.gain.linearRampToValueAtTime(0.1, noteStart + 0.02);
-            gain.gain.setValueAtTime(0.08, noteStart + noteDur * 0.7);
-            gain.gain.linearRampToValueAtTime(0, noteStart + noteDur);
-
-            osc.connect(gain);
-            gain.connect(musicGain);
-            osc.start(noteStart);
-            osc.stop(noteStart + noteDur + 0.1);
-            musicNodes.push({osc, gain});
-        });
-
-        // Drums
+        // ===== DEEP KICK DRUM - 4 on the floor =====
         for (let beat = 0; beat < 16; beat++) {
-            const beatStart = startTime + beat * beatTime * 0.5;
+            const kickTime = startTime + beat * beatTime;
 
-            // Kick on 1 and 3
-            if (beat % 4 === 0) {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, beatStart);
-                osc.frequency.exponentialRampToValueAtTime(40, beatStart + 0.1);
-                gain.gain.setValueAtTime(0.3, beatStart);
-                gain.gain.exponentialRampToValueAtTime(0.001, beatStart + 0.15);
-                osc.connect(gain);
-                gain.connect(musicGain);
-                osc.start(beatStart);
-                osc.stop(beatStart + 0.15);
-                musicNodes.push({osc, gain});
-            }
+            // Main kick
+            const kickOsc = audioCtx.createOscillator();
+            const kickGain = audioCtx.createGain();
+            kickOsc.type = 'sine';
+            kickOsc.frequency.setValueAtTime(150, kickTime);
+            kickOsc.frequency.exponentialRampToValueAtTime(35, kickTime + 0.15);
+            kickGain.gain.setValueAtTime(0.5, kickTime);
+            kickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.3);
+            kickOsc.connect(kickGain);
+            kickGain.connect(musicGain);
+            kickOsc.start(kickTime);
+            kickOsc.stop(kickTime + 0.3);
+            musicNodes.push({osc: kickOsc});
 
-            // Snare on 2 and 4
-            if (beat % 4 === 2) {
-                const bufferSize = audioCtx.sampleRate * 0.1;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
-                }
-                const source = audioCtx.createBufferSource();
-                const gain = audioCtx.createGain();
-                source.buffer = buffer;
-                gain.gain.value = 0.15;
-                source.connect(gain);
-                gain.connect(musicGain);
-                source.start(beatStart);
-                musicNodes.push({source, gain});
-            }
+            // Kick click
+            const clickOsc = audioCtx.createOscillator();
+            const clickGain = audioCtx.createGain();
+            clickOsc.type = 'triangle';
+            clickOsc.frequency.value = 800;
+            clickGain.gain.setValueAtTime(0.1, kickTime);
+            clickGain.gain.exponentialRampToValueAtTime(0.001, kickTime + 0.02);
+            clickOsc.connect(clickGain);
+            clickGain.connect(musicGain);
+            clickOsc.start(kickTime);
+            clickOsc.stop(kickTime + 0.05);
+            musicNodes.push({osc: clickOsc});
+        }
 
-            // Hi-hat on every 8th
-            const hhBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.03, audioCtx.sampleRate);
+        // ===== OFF-BEAT HI-HAT =====
+        for (let i = 0; i < 32; i++) {
+            const hhTime = startTime + (i + 0.5) * beatTime * 0.5;
+            const hhBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
             const hhData = hhBuffer.getChannelData(0);
-            for (let i = 0; i < hhBuffer.length; i++) {
-                hhData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / hhBuffer.length, 3);
+            for (let j = 0; j < hhBuffer.length; j++) {
+                hhData[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / hhBuffer.length, 4);
             }
             const hhSource = audioCtx.createBufferSource();
             const hhGain = audioCtx.createGain();
             hhSource.buffer = hhBuffer;
-            hhGain.gain.value = 0.06;
+            hhGain.gain.value = 0.08;
             hhSource.connect(hhGain);
             hhGain.connect(musicGain);
-            hhSource.start(beatStart);
-            musicNodes.push({source: hhSource, gain: hhGain});
+            hhSource.start(hhTime);
+            musicNodes.push({source: hhSource});
+        }
+
+        // ===== CLAP ON 2 AND 4 =====
+        for (let beat = 0; beat < 16; beat++) {
+            if (beat % 2 === 1) {
+                const clapTime = startTime + beat * beatTime;
+                const clapBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.12, audioCtx.sampleRate);
+                const clapData = clapBuffer.getChannelData(0);
+                for (let j = 0; j < clapBuffer.length; j++) {
+                    const env = Math.pow(1 - j / clapBuffer.length, 2);
+                    clapData[j] = (Math.random() * 2 - 1) * env;
+                }
+                const clapSource = audioCtx.createBufferSource();
+                const clapGain = audioCtx.createGain();
+                clapSource.buffer = clapBuffer;
+                clapGain.gain.value = 0.12;
+                clapSource.connect(clapGain);
+                clapGain.connect(musicGain);
+                clapSource.start(clapTime);
+                musicNodes.push({source: clapSource});
+            }
+        }
+
+        // ===== DEEP SUB BASS - pulsing =====
+        for (let i = 0; i < 8; i++) {
+            const bassTime = startTime + i * 2 * beatTime;
+            const bassNote = bassNotes[i % 8];
+
+            // Sub sine
+            const subOsc = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.value = bassNote;
+            subGain.gain.setValueAtTime(0, bassTime);
+            subGain.gain.linearRampToValueAtTime(0.25, bassTime + 0.05);
+            subGain.gain.setValueAtTime(0.2, bassTime + beatTime);
+            subGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.8);
+            subOsc.connect(subGain);
+            subGain.connect(musicGain);
+            subOsc.start(bassTime);
+            subOsc.stop(bassTime + beatTime * 2);
+            musicNodes.push({osc: subOsc});
+
+            // Sawtooth layer for grit
+            const sawOsc = audioCtx.createOscillator();
+            const sawGain = audioCtx.createGain();
+            sawOsc.type = 'sawtooth';
+            sawOsc.frequency.value = bassNote * 2;
+            sawGain.gain.setValueAtTime(0, bassTime);
+            sawGain.gain.linearRampToValueAtTime(0.06, bassTime + 0.05);
+            sawGain.gain.linearRampToValueAtTime(0, bassTime + beatTime * 1.5);
+            sawOsc.connect(sawGain);
+            sawGain.connect(musicGain);
+            sawOsc.start(bassTime);
+            sawOsc.stop(bassTime + beatTime * 2);
+            musicNodes.push({osc: sawOsc});
+        }
+
+        // ===== MATRIX ARPEGGIO - mysterious synth =====
+        for (let i = 0; i < 16; i++) {
+            const arpTime = startTime + i * beatTime;
+            const noteIdx = i % 4;
+            const patternIdx = Math.floor(i / 4) % 4;
+            const arpNote = arpNotes[patternIdx * 4 + noteIdx];
+
+            const arpOsc = audioCtx.createOscillator();
+            const arpOsc2 = audioCtx.createOscillator();
+            const arpGain = audioCtx.createGain();
+
+            arpOsc.type = 'sawtooth';
+            arpOsc.frequency.value = arpNote;
+            arpOsc2.type = 'sawtooth';
+            arpOsc2.frequency.value = arpNote * 1.005; // Slight detune for thickness
+
+            arpGain.gain.setValueAtTime(0, arpTime);
+            arpGain.gain.linearRampToValueAtTime(0.06, arpTime + 0.02);
+            arpGain.gain.exponentialRampToValueAtTime(0.001, arpTime + beatTime * 0.8);
+
+            arpOsc.connect(arpGain);
+            arpOsc2.connect(arpGain);
+            arpGain.connect(musicGain);
+            arpOsc.start(arpTime);
+            arpOsc2.start(arpTime);
+            arpOsc.stop(arpTime + beatTime);
+            arpOsc2.stop(arpTime + beatTime);
+            musicNodes.push({osc: arpOsc});
+        }
+
+        // ===== PAD - atmospheric wash =====
+        const padOsc1 = audioCtx.createOscillator();
+        const padOsc2 = audioCtx.createOscillator();
+        const padOsc3 = audioCtx.createOscillator();
+        const padGain = audioCtx.createGain();
+
+        padOsc1.type = 'sine';
+        padOsc1.frequency.value = 110; // A2
+        padOsc2.type = 'sine';
+        padOsc2.frequency.value = 164.81; // E3
+        padOsc3.type = 'sine';
+        padOsc3.frequency.value = 220; // A3
+
+        padGain.gain.setValueAtTime(0, startTime);
+        padGain.gain.linearRampToValueAtTime(0.04, startTime + 2);
+        padGain.gain.setValueAtTime(0.04, startTime + loopDuration - 2);
+        padGain.gain.linearRampToValueAtTime(0, startTime + loopDuration);
+
+        padOsc1.connect(padGain);
+        padOsc2.connect(padGain);
+        padOsc3.connect(padGain);
+        padGain.connect(musicGain);
+        padOsc1.start(startTime);
+        padOsc2.start(startTime);
+        padOsc3.start(startTime);
+        padOsc1.stop(startTime + loopDuration);
+        padOsc2.stop(startTime + loopDuration);
+        padOsc3.stop(startTime + loopDuration);
+        musicNodes.push({osc: padOsc1});
+
+        // ===== FX - risers every 8 bars =====
+        if (Math.random() > 0.3) {
+            const fxTime = startTime + 14 * beatTime;
+            const fxOsc = audioCtx.createOscillator();
+            const fxGain = audioCtx.createGain();
+            fxOsc.type = 'sawtooth';
+            fxOsc.frequency.setValueAtTime(200, fxTime);
+            fxOsc.frequency.exponentialRampToValueAtTime(2000, fxTime + beatTime * 2);
+            fxGain.gain.setValueAtTime(0, fxTime);
+            fxGain.gain.linearRampToValueAtTime(0.08, fxTime + beatTime);
+            fxGain.gain.linearRampToValueAtTime(0, fxTime + beatTime * 2);
+            fxOsc.connect(fxGain);
+            fxGain.connect(musicGain);
+            fxOsc.start(fxTime);
+            fxOsc.stop(fxTime + beatTime * 2);
+            musicNodes.push({osc: fxOsc});
         }
 
         // Schedule next loop
-        setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 0.5) * 1000);
+        setTimeout(() => scheduleLoop(startTime + loopDuration), (loopDuration - 1) * 1000);
     }
 
     scheduleLoop(now);
@@ -1299,22 +1370,30 @@ function drawTitle() {
 }
 
 function drawHUD() {
-    // Score
-    ctx.fillStyle = MATRIX_CYAN;
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`SCORE: ${score}`, 10, 28);
+    // VICTUS title - always visible at top center
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 32px Arial';
+    const titleGlow = Math.sin(frameCount * 0.05) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(0, 255, 65, ${titleGlow})`;
+    ctx.fillText('VICTUS', canvas.width/2, 32);
 
-    // Level
+    // Score - left side
+    ctx.fillStyle = MATRIX_CYAN;
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`SCORE: ${score}`, 10, 55);
+
+    // Level - below title
     if (!bossFight) {
         ctx.textAlign = 'center';
-        ctx.fillStyle = MATRIX_GREEN;
-        ctx.fillText(`LVL ${level}/10`, canvas.width/2, 28);
+        ctx.fillStyle = MATRIX_DARK_GREEN;
+        ctx.font = '14px Arial';
+        ctx.fillText(`LEVEL ${level}/10`, canvas.width/2, 52);
     }
 
-    // Bomb button
+    // Bomb button - moved down to avoid title
     const btnX = canvas.width - 85;
-    const btnY = 8;
+    const btnY = 60;
     const btnW = 75;
     const btnH = 55;
 
@@ -1426,7 +1505,7 @@ function handleStart(x, y) {
 
     // Bomb button
     const btnX = canvas.width - 85;
-    if (x > btnX && y < 65) {
+    if (x > btnX && y > 55 && y < 120) {
         if (player.bombs > 0) {
             player.bombs--;
             bombs.push({
